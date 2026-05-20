@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* #FAF4EE — Warm Luxury Canvas Base [cite: 4] */
+    --background: 250 244 238;
+    /* #000000 — Pure Geometric Jet Black [cite: 4] */
+    --foreground: 0 0 0;
+
+    /* #32221A — Deep Espresso Luxury Wood Accent [cite: 4] */
+    --primary: 50 34 26;
+    --primary-foreground: 250 244 238;
+
+    /* #FAF4EE — Container card space [cite: 4] */
+    --card: 250 244 238;
+    --card-foreground: 0 0 0;
+
+    /* #7A726C — Muted Secondary Gray Text */
+    --muted: 122 114 108;
+    --muted-foreground: 150 141 134;
+
+    /* #EAE1D7 — Structural Frame lines */
+    --border: 234 225 215;
+    --input: 234 225 215;
+    --ring: 50 34 26;
+
+    --radius: 0rem;
+
+    /* Static fallbacks */
+    --brand-canvas: #faf4ee;
+    --brand-espresso: #32221a;
+    --brand-black: #000000;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 14 11 9;
+      --foreground: 245 239 235;
+      --primary: 250 244 238;
+      --primary-foreground: 14 11 9;
+      --card: 22 18 15;
+      --card-foreground: 245 239 235;
+      --muted: 150 141 134;
+      --muted-foreground: 122 114 108;
+      --border: 36 29 26;
+      --input: 36 29 26;
+      --ring: 245 239 235;
+    }
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-body tracking-normal;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading font-normal tracking-tight text-foreground;
+  }
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Custom fine gallery scroller context */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--primary));
+}
+
+@layer components {
+  /* Ultra-luxury interaction mechanics across the platform */
+  .btn-luxury {
+    @apply inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground
+           px-8 py-4 uppercase tracking-[0.2em] font-body text-xs font-medium
+           hover:opacity-90 active:scale-[0.98] transition-all duration-300;
+  }
+
+  .btn-luxury-outline {
+    @apply inline-flex items-center justify-center gap-2 bg-transparent text-foreground
+           px-8 py-4 uppercase tracking-[0.2em] font-body text-xs font-medium
+           border border-foreground/30 hover:border-foreground active:scale-[0.98] transition-all duration-300;
+  }
+
+  .eyebrow-gallery {
+    @apply font-body text-[10px] font-medium uppercase tracking-[0.35em] text-muted/90 flex items-center gap-4;
+  }
+
+  .eyebrow-gallery::before {
+    content: "";
+    @apply inline-block w-6 h-[1px] bg-muted/50 shrink-0;
+  }
+
+  .premium-frame {
+    @apply bg-card border border-border shadow-sm transition-all duration-500 ease-out;
+  }
+}
