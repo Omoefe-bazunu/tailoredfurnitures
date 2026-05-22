@@ -382,7 +382,7 @@ export default function ArtworkDetail() {
             <div className="grid grid-cols-2 gap-3 pt-2 font-body text-[10px] tracking-widest uppercase font-semibold">
               <button
                 onClick={() => setAddedToCart(false)}
-                className="h-11 border border-foreground/20 hover:border-foreground bg-transparent text-foreground transition-colors text-center"
+                className="h-11 uppercase border border-foreground/20 hover:border-foreground bg-transparent text-foreground transition-colors text-center"
               >
                 Add More
               </button>

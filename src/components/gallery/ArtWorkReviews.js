@@ -5,10 +5,10 @@ export default function ArtworkReviews({ reviews }) {
     <div className="border-t border-foreground/5 pt-16 space-y-8">
       <div className="space-y-1">
         <p className="font-body text-[10px] tracking-widest uppercase text-muted font-medium">
-          Verified Social Attributions
+          Verified Client Reviews
         </p>
         <h2 className="font-heading text-3xl font-light">
-          Exhibition Provenance & Reviews
+          Clients&apos; Thoughts on this Masterpiece
         </h2>
       </div>
 

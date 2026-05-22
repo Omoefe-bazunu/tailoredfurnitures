@@ -61,7 +61,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground py-12 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade relative">
+    <main className="min-h-screen bg-background text-foreground pt-12 pb-20 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade relative">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Navigation context exit button */}
         <Link
@@ -221,7 +221,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-28">
             <div className="p-6 border border-foreground/5 bg-card divide-y divide-foreground/5 space-y-4">
               <span className="block font-body text-[10px] tracking-widest text-muted uppercase font-medium">
-                Vault Ledger Preview
+                Order Preview
               </span>
 
               {cart.map((item) => (

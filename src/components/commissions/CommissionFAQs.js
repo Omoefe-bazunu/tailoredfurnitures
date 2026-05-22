@@ -26,7 +26,7 @@ export default function CommissionFAQs() {
   ];
 
   return (
-    <div className="space-y-12 border-t border-foreground/5 pt-20 max-w-4xl mx-auto w-full">
+    <div className="space-y-12 border-t border-foreground/5 pt-20 pb-16 max-w-4xl mx-auto w-full">
       <div className="text-center space-y-2">
         <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-primary">
           Exhibition Inquiries

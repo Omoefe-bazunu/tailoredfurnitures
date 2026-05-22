@@ -4,8 +4,8 @@ import Link from "next/link";
 
 export default function ArtworkRelated({ items }) {
   return (
-    <div className="border-t border-foreground/5 pt-16 space-y-10">
-      <div className="flex justify-between items-end border-b border-foreground/5 pb-4">
+    <div className="border-t border-foreground/5 pt-16 space-y-10 pb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 justify-between items-end border-b border-foreground/5 pb-4">
         <div className="space-y-1">
           <p className="font-body text-[10px] tracking-widest uppercase text-muted font-medium">
             Structural Complements
@@ -14,12 +14,15 @@ export default function ArtworkRelated({ items }) {
             Related Masterpieces
           </h2>
         </div>
-        <Link
-          href="/gallery"
-          className="font-body text-[10px] tracking-widest uppercase text-foreground border-b border-foreground pb-0.5 hover:text-muted hover:border-muted transition-colors"
-        >
-          Explore All
-        </Link>
+        <div className="flex flex-col item-center sm:justify-self-end mt-4">
+          <Link
+            href="/gallery"
+            className="font-body text-[10px] tracking-widest uppercase text-foreground border-foreground pb-0.5 hover:text-muted hover:border-muted transition-colors"
+          >
+            Explore All
+          </Link>
+          <div className="h-0.5 w-8 bg-primary"></div>
+        </div>
       </div>
 
       {/* Structured Minimal Horizontal Recommendation Grid */}

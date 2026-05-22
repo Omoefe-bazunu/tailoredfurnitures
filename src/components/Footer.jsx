@@ -66,30 +66,30 @@ export default function Footer() {
         {/* Right Column: Contact Concierge Credentials */}
         <div className="md:col-span-4 space-y-3">
           <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
-            Studio Communications
+            Contact & Socials
           </p>
           <ul className="space-y-2 font-body text-xs text-white/70 font-light">
             <li>
               General:{" "}
               <a
-                href="mailto:info@craftedfurnitures.com"
+                href="mailto:info@tailoredfurnitures.com"
                 className="hover:text-white transition-colors underline decoration-white/10"
               >
-                info@craftedfurnitures.com
+                info@tailoredfurnitures.com
               </a>{" "}
             </li>
             <li>
               Bookings:{" "}
               <a
-                href="mailto:bookings@craftedfurnitures.com"
+                href="mailto:bookings@tailoredfurnitures.com"
                 className="hover:text-white transition-colors underline decoration-white/10"
               >
-                bookings@craftedfurnitures.com
+                bookings@tailoredfurnitures.com
               </a>{" "}
             </li>
             <li className="pt-2 text-[10px] tracking-widest uppercase text-white/60 flex gap-4">
               <a
-                href="https://instagram.com/craftedfurnitures"
+                href="https://instagram.com/tailoredfurnitures"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-white transition-colors"
@@ -97,7 +97,7 @@ export default function Footer() {
                 Instagram
               </a>{" "}
               <a
-                href="https://facebook.com/craftedfurnitures"
+                href="https://facebook.com/tailoredfurnitures "
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-white transition-colors"
@@ -105,7 +105,7 @@ export default function Footer() {
                 Facebook
               </a>{" "}
               <a
-                href="https://tiktok.com/@craftedfurnitures"
+                href="https://tiktok.com/@tailoredfurnitures"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-white transition-colors"
@@ -119,7 +119,7 @@ export default function Footer() {
 
       {/* Sub-Footer Meta Attributions */}
       <div className="max-w-7xl mx-auto border-t border-white/10 pt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center text-[9px] tracking-[0.3em] uppercase text-white/60 gap-4">
-        <p>© 2026 Tailored Furnitures LLC. All Rights Reserved.</p>
+        <p>© 2026 Tailored Furnitures. All Rights Reserved.</p>
         <p className="font-medium text-white/40">
           Interior Decorations & Wall Hang Arts Only
         </p>

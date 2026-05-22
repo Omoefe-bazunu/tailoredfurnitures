@@ -41,7 +41,7 @@ export default function HomeHero() {
           <div className="pt-0 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <div className="flex flex-col">
               <span className="text-[9px] tracking-widest uppercase text-muted/60 mb-1">
-                Acquisition Tier
+                Amount
               </span>
               <span className="font-body text-2xl font-light tracking-wide">
                 $9,500

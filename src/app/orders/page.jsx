@@ -92,7 +92,7 @@ export default function StudioOrders() {
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground py-12 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
+    <main className="min-h-screen bg-background text-foreground pt-12 pb-20 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Dashboard Branding Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 border-b border-foreground/5 pb-8">

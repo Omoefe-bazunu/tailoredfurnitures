@@ -26,11 +26,12 @@ export default function CartPage() {
         </div>
         <div className="space-y-1">
           <h2 className="font-heading text-2xl font-light">
-            Your Acquisition Vault is Empty
+            Your Cart is Empty
           </h2>
           <p className="font-body text-xs text-muted max-w-sm mx-auto leading-relaxed">
-            You have not allocated any master woodwork relief sculptures to your
-            selection index.
+            You have not selected and added any piece to your cart yet. Explore
+            our gallery and add your favorite masterpieces to the cart for a
+            seamless checkout experience.
           </p>
         </div>
         <Link
@@ -44,12 +45,12 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground py-12 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
+    <main className="min-h-screen bg-background text-foreground pt-12 pb-20 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
       <div className="max-w-7xl mx-auto space-y-12">
         {/* Header Block */}
         <div className="border-b border-foreground/5 pb-6 space-y-2">
           <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-primary">
-            Acquisition Allocation Summary
+            Cart Summary
           </p>
           <h1 className="font-heading text-4xl font-light tracking-tight">
             Your Selections
@@ -187,8 +188,7 @@ export default function CartPage() {
                 href="/gallery"
                 className="inline-flex items-center justify-center gap-2 font-body text-[10px] tracking-widest uppercase text-muted hover:text-foreground transition-colors w-full text-center"
               >
-                <ArrowLeft className="w-3.5 h-3.5" /> Continue Exhibition
-                Examination
+                <ArrowLeft className="w-3.5 h-3.5" /> Continue Selection
               </Link>
             </div>
 

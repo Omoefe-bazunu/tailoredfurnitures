@@ -31,8 +31,8 @@ export default function Navbar() {
             <Image
               src="/logo.png"
               alt="Tailored Furnitures Logo"
-              width={24}
-              height={24}
+              width={20}
+              height={20}
               className="object-contain block dark:hidden transition-transform duration-500 group-hover:scale-105"
               priority
             />
@@ -40,8 +40,8 @@ export default function Navbar() {
             <Image
               src="/logow.png"
               alt="Tailored Furnitures Logo"
-              width={24}
-              height={24}
+              width={20}
+              height={20}
               className="object-contain hidden dark:block transition-transform duration-500 group-hover:scale-105"
               priority
             />

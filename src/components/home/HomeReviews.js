@@ -25,7 +25,7 @@ export default function HomeReviews() {
         <div className="text-center md:text-left space-y-2 max-w-md">
           <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-muted flex items-center gap-4 justify-center md:justify-start">
             <span className="inline-block w-4 h-[1px] bg-muted/40 shrink-0"></span>
-            Collector Sentiment
+            Client Reviews
           </p>
           <h2 className="font-heading text-3xl font-light">
             Spatial Transformations
