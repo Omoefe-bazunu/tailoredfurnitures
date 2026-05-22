@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Truck,
   Maximize2,
+  X,
+  Check,
 } from "lucide-react";
 
 import { useCart } from "@/context/CartContext"; // Hooked state architecture
@@ -122,11 +124,10 @@ export default function ArtworkDetail() {
   const handleAddToCart = () => {
     addToCart(artwork, quantity); // Dispatch selected item parameters dynamically
     setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2500);
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground py-12 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
+    <main className="min-h-screen bg-background text-foreground py-12 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade relative">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Dynamic Navigation Context Exit Trigger */}
         <Link
@@ -248,7 +249,7 @@ export default function ArtworkDetail() {
             <div className="space-y-4">
               <div className="text-[10px] font-medium uppercase tracking-[0.35em] text-primary flex items-center gap-4">
                 <span className="inline-block w-4 h-[1px] bg-primary/40 shrink-0"></span>
-                {artwork.category} School Framework // Item {artwork.id}
+                {artwork.category} School Framework | Item {artwork.id}
               </div>
               <h1 className="font-heading text-display-lg font-light tracking-tight leading-none">
                 {artwork.name}
@@ -296,8 +297,8 @@ export default function ArtworkDetail() {
                 Select Allocation Quantity
               </p>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center border border-foreground/20 bg-card h-14">
+              <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-4">
+                <div className="flex items-center justify-center border border-foreground/20 bg-card h-14">
                   <button
                     onClick={() => adjustQuantity("minus")}
                     className="px-4 h-full text-foreground/60 hover:text-foreground hover:bg-foreground/[0.02] transition-colors"
@@ -320,7 +321,7 @@ export default function ArtworkDetail() {
                   className="btn-luxury flex-grow h-14"
                 >
                   <ShoppingBag className="w-4 h-4 mr-2 stroke-[1.5]" />
-                  {addedToCart ? "Added to Cart Vault" : `Add to Cart`}
+                  Add to Cart
                 </button>
               </div>
             </div>
@@ -345,6 +346,56 @@ export default function ArtworkDetail() {
         {/* 4. Injected Recommendations Component Node */}
         <ArtworkRelated items={relatedItems} />
       </div>
+
+      {/* ──────────────────────────────────────────────────────────────────────
+         MINIMALIST ADDED TO CART CONFIRMATION PORTAL MODAL
+         ────────────────────────────────────────────────────────────────────── */}
+      {addedToCart && (
+        <div className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6 gallery-fade">
+          <div className="w-full max-w-sm bg-card border border-foreground/10 p-6 relative shadow-2xl space-y-6">
+            <div className="absolute inset-0 border border-foreground/5 pointer-events-none m-2"></div>
+
+            <button
+              onClick={() => setAddedToCart(false)}
+              className="absolute top-4 right-4 text-muted hover:text-foreground transition-colors"
+              aria-label="Dismiss Modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 border border-primary/20 bg-primary/5 rounded-full flex items-center justify-center shrink-0">
+                <Check className="w-4 h-4 text-primary stroke-[2.5]" />
+              </div>
+              <div className="space-y-1 pt-1">
+                <h3 className="font-heading text-lg font-light tracking-tight text-foreground">
+                  {artwork.name} added to cart
+                </h3>
+                <p className="font-body text-xs text-muted leading-relaxed">
+                  {quantity}x &ldquo;{artwork.name}&rdquo; added to cart
+                  successully. You may continue browsing or proceed to checkout
+                  to finalize your order.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2 font-body text-[10px] tracking-widest uppercase font-semibold">
+              <button
+                onClick={() => setAddedToCart(false)}
+                className="h-11 border border-foreground/20 hover:border-foreground bg-transparent text-foreground transition-colors text-center"
+              >
+                Add More
+              </button>
+              <Link
+                href="/cart"
+                className="btn-luxury h-11 flex items-center justify-center text-center"
+              >
+                Open Cart
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

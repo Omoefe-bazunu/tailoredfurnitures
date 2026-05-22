@@ -38,7 +38,7 @@ export default function HomeHero() {
             micro-details.
           </p>
 
-          <div className="pt-4 flex flex-wrap items-center gap-8">
+          <div className="pt-0 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <div className="flex flex-col">
               <span className="text-[9px] tracking-widest uppercase text-muted/60 mb-1">
                 Acquisition Tier
@@ -48,16 +48,15 @@ export default function HomeHero() {
               </span>
             </div>
 
-            <div className="flex items-center gap-4">
-              <Link href="/gallery" className="btn-luxury min-w-[200px]">
+            <div className="flex flex-row items-center gap-3">
+              <Link href="/gallery" className="btn-luxury">
                 <ArrowRight className="w-3.5 h-3.5 mr-1" /> GALLERY
               </Link>
-
               <Link
                 href="/gallery/aurelio-vento"
                 className="btn-luxury-outline"
               >
-                View Frame Details
+                View Details
               </Link>
             </div>
           </div>

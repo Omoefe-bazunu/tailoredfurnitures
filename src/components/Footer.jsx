@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link"; // Next.js performance route layer injection
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -8,8 +9,15 @@ export default function Footer() {
         {/* Left Column: Brand Vision Copy */}
         <div className="md:col-span-5 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-5 bg-white relative flex flex-col justify-between p-[1px]">
-              <div className="w-full h-[4px] bg-[#111111]"></div>
+            <div className="relative w-8 h-8 flex items-center justify-center">
+              <Image
+                src="/logow.png"
+                alt="Tailored Furnitures Logo"
+                width={16}
+                height={16}
+                className="object-contain transition-transform duration-500 group-hover:scale-105"
+                priority
+              />
             </div>
             <span className="font-body text-[10px] tracking-[0.4em] uppercase font-bold text-white">
               Tailored Furnitures

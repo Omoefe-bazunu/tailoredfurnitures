@@ -110,7 +110,7 @@ export default function StudioOrders() {
           <div className="flex items-center gap-8 font-body border border-foreground/10 p-4 bg-card">
             <div>
               <span className="block text-[8px] text-muted uppercase tracking-wider mb-0.5">
-                Gross Vault Capital
+                Total Order Value
               </span>
               <span className="text-lg font-light tracking-wide">
                 ${grossPipelineValue.toLocaleString()}
@@ -119,7 +119,7 @@ export default function StudioOrders() {
             <div className="w-[1px] h-8 bg-foreground/10"></div>
             <div>
               <span className="block text-[8px] text-muted uppercase tracking-wider mb-0.5">
-                Allocations
+                Total Items Ordered
               </span>
               <span className="text-lg font-light tracking-wide">
                 {activeAllocationsCount} Units
@@ -156,7 +156,7 @@ export default function StudioOrders() {
                     className="p-2 border border-foreground/10 hover:border-foreground/30 text-muted hover:text-foreground bg-background transition-colors flex items-center gap-1.5 font-body text-[9px] tracking-widest uppercase font-medium"
                     title="Simulate workflow status modification cycle"
                   >
-                    <RefreshCw className="w-3 h-3" /> Advance Cycle
+                    <RefreshCw className="w-3 h-3" /> Refresh Status
                   </button>
                 </div>
               </div>

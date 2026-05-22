@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function ArtworkRelated({ items }) {
   return (
@@ -13,12 +14,12 @@ export default function ArtworkRelated({ items }) {
             Related Masterpieces
           </h2>
         </div>
-        <a
+        <Link
           href="/gallery"
           className="font-body text-[10px] tracking-widest uppercase text-foreground border-b border-foreground pb-0.5 hover:text-muted hover:border-muted transition-colors"
         >
-          Explore All 100 Designs
-        </a>
+          Explore All
+        </Link>
       </div>
 
       {/* Structured Minimal Horizontal Recommendation Grid */}

@@ -46,7 +46,7 @@ export default function Navbar() {
               priority
             />
           </div>
-          <span className="font-body text-lg tracking-[0.35em] uppercase font-semibold text-foreground">
+          <span className="font-body text-xs sm:text-sm tracking-[0.35em] uppercase font-semibold text-foreground">
             Tailored Furnitures
           </span>
         </Link>
@@ -65,10 +65,10 @@ export default function Navbar() {
             Bespoke Commissions
           </Link>
           <Link
-            href="/studio/orders"
+            href="/orders"
             className="font-body text-[11px] tracking-[0.25em] uppercase text-foreground hover:text-foreground transition-colors duration-300"
           >
-            Studio Orders
+            Orders
           </Link>
         </nav>
 
@@ -103,21 +103,24 @@ export default function Navbar() {
         <div className="md:hidden border-t border-foreground/5 bg-background/95 backdrop-blur-md px-6 py-6 space-y-4">
           <Link
             href="/gallery"
+            onClick={() => setMobileMenuOpen(false)}
             className="block font-body text-[11px] tracking-[0.25em] uppercase text-foreground/70 hover:text-foreground transition-colors duration-300"
           >
             The Gallery
           </Link>
           <Link
             href="/commissions"
+            onClick={() => setMobileMenuOpen(false)}
             className="block font-body text-[11px] tracking-[0.25em] uppercase text-foreground/70 hover:text-foreground transition-colors duration-300"
           >
             Bespoke Commissions
           </Link>
           <Link
-            href="/studio/orders"
+            href="/orders"
+            onClick={() => setMobileMenuOpen(false)}
             className="block font-body text-[11px] tracking-[0.25em] uppercase text-foreground/70 hover:text-foreground transition-colors duration-300"
           >
-            Studio Orders
+            Orders
           </Link>
         </div>
       )}

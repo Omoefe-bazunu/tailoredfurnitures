@@ -69,7 +69,7 @@ export default function CheckoutPage() {
           className="inline-flex items-center gap-2 font-body text-[10px] tracking-widest uppercase text-muted hover:text-foreground transition-colors group w-fit"
         >
           <ArrowLeft className="w-3.5 h-3.5 transform transition-transform group-hover:-translate-x-1" />
-          Modify Cart Selections
+          Finalize Cart Selections
         </Link>
 
         {/* Master Pipeline Grid */}
@@ -84,10 +84,10 @@ export default function CheckoutPage() {
             >
               <div className="space-y-2 border-b border-foreground/5 pb-4">
                 <h2 className="font-heading text-2xl font-light tracking-tight">
-                  Acquisition Credentials
+                  Checkout Information
                 </h2>
                 <p className="text-[10px] text-muted uppercase tracking-widest">
-                  Specify safe destination coordinates
+                  Specify delivery address
                 </p>
               </div>
 
@@ -205,12 +205,12 @@ export default function CheckoutPage() {
                 {isProcessing ? (
                   <span className="inline-flex items-center gap-2">
                     <span className="w-3.5 h-3.5 border-2 border-background border-t-transparent rounded-full animate-spin"></span>
-                    Authorizing Secure Encrypted Escrow...
+                    Processing Payment
                   </span>
                 ) : (
                   <>
-                    <Lock className="w-3.5 h-3.5 mr-1.5 opacity-60" /> Authorize
-                    Settlement — ${totalInvestment.toLocaleString()}
+                    <Lock className="w-3.5 h-3.5 mr-1.5 opacity-60" /> Proceed
+                    to Pay
                   </>
                 )}
               </button>
@@ -252,13 +252,6 @@ export default function CheckoutPage() {
                 </span>
               </div>
             </div>
-
-            <div className="font-body text-[10px] tracking-wider uppercase text-muted/60 space-y-2 px-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Multi-Layer
-                End-to-End Cryptographic Protection Active
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -284,9 +277,9 @@ export default function CheckoutPage() {
                 Orders Saved
               </h3>
               <p className="font-body font-light text-xs text-muted leading-relaxed max-w-sm mx-auto">
-                Your luxury allocations have been verified and secured inside
-                our studio processing queue. A custom HTML crating manifest has
-                been dispatched to your email credentials.
+                Your order has been successfully processed and securely stored
+                in our database. You can track the status of your order and view
+                your collection in the Orders section. Thank you!
               </p>
             </div>
 
@@ -295,7 +288,7 @@ export default function CheckoutPage() {
               onClick={handleModalCloseClose}
               className="btn-luxury w-full h-12 flex items-center justify-center"
             >
-              Track Order Manifest <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              Track Order <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </button>
           </div>
         </div>
