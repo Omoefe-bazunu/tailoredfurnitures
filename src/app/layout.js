@@ -1,4 +1,22 @@
 import "./globals.css";
+import { Playfair_Display, Inter } from "next/font/google";
+import Navbar from "@/components/NavBar";
+import Footer from "@/components/Footer";
+import { CartProvider } from "@/context/CartContext";
+
+// Optimize Playfair Display for our luxury editorial headings
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+// Optimize Inter for clean, legible product descriptions and UI elements
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata = {
   title: "Tailored Furnitures | Luxury Wall Art Collection",
@@ -8,22 +26,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        {/* Dynamic cross-origin pre-connect for optimized font loading */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="antialiased selection:bg-espresso selection:text-canvas">
-        {children}
+    <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
+      <body className="antialiased selection:bg-primary selection:text-primary-foreground min-h-screen flex flex-col justify-between">
+        <CartProvider>
+          <Navbar />
+          {/* Safe breathing room buffer for our fixed navigation glass layer */}
+          <div className="pt-20 flex-grow w-full">{children}</div>
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );
