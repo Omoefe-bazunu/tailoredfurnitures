@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 const CartContext = createContext(undefined);
 
@@ -10,15 +10,13 @@ function loadCartFromStorage() {
     const savedCart = localStorage.getItem("tailored_cart_vault");
     return savedCart ? JSON.parse(savedCart) : [];
   } catch (e) {
-    console.error("Error reestablishing cart vault context memory");
+    console.error("Error reestablishing cart context storage mapping");
     return [];
   }
 }
 
 export function CartProvider({ children }) {
-  const [cart, setCart] = useState(loadCartFromStorage); // 👈 lazy initializer
-
-  // No hydration effect needed — state is initialized directly from storage
+  const [cart, setCart] = useState(loadCartFromStorage);
 
   const saveCart = (updatedCart) => {
     setCart(updatedCart);
@@ -26,6 +24,7 @@ export function CartProvider({ children }) {
   };
 
   const addToCart = (artwork, quantity) => {
+    // Standardized targeting parameters to safely parse both string or incremental IDs
     const existingIndex = cart.findIndex((item) => item.id === artwork.id);
     let updatedCart = [...cart];
 
@@ -36,9 +35,9 @@ export function CartProvider({ children }) {
         id: artwork.id,
         name: artwork.name,
         price: artwork.price,
-        imageUrl: artwork.imageUrl,
-        category: artwork.category,
-        dimensions: artwork.dimensions,
+        imageUrl: artwork.imageUrl || "",
+        category: artwork.category || "General",
+        dimensions: artwork.dimensions || "Variable",
         quantity: quantity,
       });
     }
@@ -58,17 +57,10 @@ export function CartProvider({ children }) {
     saveCart(updatedCart);
   };
 
-  const clearCart = () => {
-    saveCart([]);
-  };
-
-  const getSubtotal = () => {
-    return cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  };
-
-  const getCartCount = () => {
-    return cart.reduce((acc, item) => acc + item.quantity, 0);
-  };
+  const clearCart = () => saveCart([]);
+  const getSubtotal = () =>
+    cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const getCartCount = () => cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <CartContext.Provider
@@ -89,10 +81,9 @@ export function CartProvider({ children }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) {
+  if (!context)
     throw new Error(
       "useCart must be executed within an explicit CartProvider wrap",
     );
-  }
   return context;
 }

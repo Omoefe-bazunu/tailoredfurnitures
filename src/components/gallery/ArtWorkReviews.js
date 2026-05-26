@@ -2,7 +2,7 @@ import React from "react";
 
 export default function ArtworkReviews({ reviews }) {
   return (
-    <div className="border-t border-foreground/5 pt-16 space-y-8">
+    <div className="border-t hidden border-foreground/5 pt-16 space-y-8">
       <div className="space-y-1">
         <p className="font-body text-[10px] tracking-widest uppercase text-muted font-medium">
           Verified Client Reviews

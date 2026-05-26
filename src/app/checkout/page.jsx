@@ -1,15 +1,21 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { useCart } from "@/context/CartContext";
-import { ArrowLeft, ShieldCheck, Lock, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, Lock, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+  notifyAdminOfOrder,
+  notifyClientOfOrder,
+} from "@/app/actions/orderNotify";
 
 export default function CheckoutPage() {
   const { cart, getSubtotal, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [error, setError] = useState("");
 
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
@@ -21,23 +27,65 @@ export default function CheckoutPage() {
 
   const totalInvestment = getSubtotal();
 
-  const handlePaymentSimulation = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (cart.length === 0) return;
+    if (cart.length === 0 || isProcessing) return;
 
     setIsProcessing(true);
+    setError("");
 
-    // Simulate database write operational delay
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      const orderData = {
+        customerName: customerInfo.name.trim(),
+        customerEmail: customerInfo.email.trim(),
+        shippingAddress: customerInfo.address.trim(),
+        city: customerInfo.city.trim(),
+        country: customerInfo.country.trim(),
+        items: cart.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          category: item.category || "General",
+          dimensions: item.dimensions || "",
+        })),
+        totalAmount: totalInvestment,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      };
+
+      // 1. Save to Firestore
+      const docRef = await addDoc(collection(db, "orders"), orderData);
+
+      // 2. Notify via server actions
+      await notifyAdminOfOrder({
+        orderId: docRef.id,
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        items: orderData.items,
+        totalAmount: orderData.totalAmount,
+      });
+
+      await notifyClientOfOrder({
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        orderId: docRef.id,
+        totalAmount: orderData.totalAmount,
+      });
+
       setShowSuccessModal(true);
-    }, 2500);
+    } catch (err) {
+      console.error("Order submission error:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleModalCloseClose = () => {
+  const handleModalClose = () => {
     setShowSuccessModal(false);
-    clearCart(); // Clear state storage vault
-    window.location.href = "/orders"; // Hard route to synchronization tracking screen
+    clearCart();
+    window.location.href = "/orders";
   };
 
   if (cart.length === 0 && !showSuccessModal) {
@@ -48,7 +96,7 @@ export default function CheckoutPage() {
         </h2>
         <p className="font-body text-xs text-muted max-w-xs mx-auto">
           Your selection list is empty. Please select a masterpiece before
-          opening the checkout
+          opening the checkout.
         </p>
         <Link
           href="/gallery"
@@ -63,23 +111,21 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-background text-foreground pt-12 pb-20 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade relative">
       <div className="max-w-7xl mx-auto space-y-12">
-        {/* Navigation context exit button */}
         <Link
           href="/cart"
           className="inline-flex items-center gap-2 font-body text-[10px] tracking-widest uppercase text-muted hover:text-foreground transition-colors group w-fit"
         >
           <ArrowLeft className="w-3.5 h-3.5 transform transition-transform group-hover:-translate-x-1" />
-          Finalize Cart Selections
+          Back to Cart
         </Link>
 
-        {/* Master Pipeline Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          {/* Left Block: Secure Intake Information Form */}
+          {/* Left: Form */}
           <div className="lg:col-span-7 premium-frame bg-card p-8 md:p-12 relative shadow-xl">
             <div className="absolute inset-0 border border-foreground/10 pointer-events-none m-3"></div>
 
             <form
-              onSubmit={handlePaymentSimulation}
+              onSubmit={handleSubmit}
               className="space-y-8 relative z-10 font-body text-xs"
             >
               <div className="space-y-2 border-b border-foreground/5 pb-4">
@@ -91,7 +137,6 @@ export default function CheckoutPage() {
                 </p>
               </div>
 
-              {/* Customer Identity Parameters */}
               <div className="space-y-4">
                 <p className="font-body text-[10px] tracking-widest uppercase text-primary font-semibold">
                   Client Identity
@@ -134,7 +179,6 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Freight Logistics Destination Address */}
               <div className="space-y-4 pt-2">
                 <p className="font-body text-[10px] tracking-widest uppercase text-primary font-semibold">
                   Delivery Coordinates
@@ -196,7 +240,10 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Action Settlement Execution Trigger button */}
+              {error && (
+                <p className="text-red-500 font-body text-xs">{error}</p>
+              )}
+
               <button
                 type="submit"
                 disabled={isProcessing}
@@ -205,19 +252,19 @@ export default function CheckoutPage() {
                 {isProcessing ? (
                   <span className="inline-flex items-center gap-2">
                     <span className="w-3.5 h-3.5 border-2 border-background border-t-transparent rounded-full animate-spin"></span>
-                    Processing Payment
+                    Processing Order...
                   </span>
                 ) : (
                   <>
-                    <Lock className="w-3.5 h-3.5 mr-1.5 opacity-60" /> Proceed
-                    to Pay
+                    <Lock className="w-3.5 h-3.5 mr-1.5 opacity-60" /> Confirm
+                    Order
                   </>
                 )}
               </button>
             </form>
           </div>
 
-          {/* Right Block: Immutable Structural Invoice Overview Ledger */}
+          {/* Right: Order summary */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-28">
             <div className="p-6 border border-foreground/5 bg-card divide-y divide-foreground/5 space-y-4">
               <span className="block font-body text-[10px] tracking-widest text-muted uppercase font-medium">
@@ -245,7 +292,7 @@ export default function CheckoutPage() {
 
               <div className="pt-4 flex justify-between items-baseline font-body">
                 <span className="text-[10px] uppercase tracking-wider text-muted">
-                  Total Gross Value
+                  Total
                 </span>
                 <span className="text-xl font-light tracking-wide text-foreground">
                   ${totalInvestment.toLocaleString()}
@@ -256,36 +303,32 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* ──────────────────────────────────────────────────────────────────────
-         4. THE SETTLEMENT SUCCESS MODAL OVERLAY
-         ────────────────────────────────────────────────────────────────────── */}
+      {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-6 gallery-fade">
           <div className="w-full max-w-md bg-card border border-foreground/10 p-8 text-center space-y-6 relative shadow-2xl">
             <div className="absolute inset-0 border border-foreground/5 pointer-events-none m-2"></div>
 
-            {/* Success Animation Badge */}
             <div className="w-12 h-12 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center mx-auto">
               <Check className="w-5 h-5 text-primary stroke-[2.5]" />
             </div>
 
             <div className="space-y-2">
               <span className="text-[9px] tracking-[0.3em] font-medium uppercase text-primary">
-                Payment Successful
+                Order Confirmed
               </span>
               <h3 className="font-heading text-3xl font-light tracking-tight">
-                Orders Saved
+                Order Saved
               </h3>
               <p className="font-body font-light text-xs text-muted leading-relaxed max-w-sm mx-auto">
-                Your order has been successfully processed and securely stored
-                in our database. You can track the status of your order and view
-                your collection in the Orders section. Thank you!
+                Your order has been saved and a confirmation has been sent to
+                your email. You can track your order status in the Orders
+                section.
               </p>
             </div>
 
-            {/* Custom Redirect UI Action Gate */}
             <button
-              onClick={handleModalCloseClose}
+              onClick={handleModalClose}
               className="btn-luxury w-full h-12 flex items-center justify-center"
             >
               Track Order <ArrowRight className="w-3.5 h-3.5 ml-1.5" />

@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+  
+    // Helper function for admin access
+    function isAdmin() {
+      return request.auth != null && 
+             request.auth.token.email in [
+               "info@higher.com.ng",
+               "raniem57@gmail.com"
+             ];
+    }
+
+    // ==========================================
+    // 1. DYNAMIC PATHS (Specific Folders)
+    // ==========================================
+
+    // Use recursive wildcards {allPaths=**} to handle any sub-folders automatically
+    match /blogImages/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /projectScreenshots/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /marketingCaseStudyImages/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /marketingAdProjectImages/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /affiliateResourceImages/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /siteContent/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /testimonialImages/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /topHeaderBanners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /adsBanners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // --- AMAZON PRODUCT IMAGES ---
+match /amazonProducts/{productId}/{imageType}/{allPaths=**} {
+  // Allow public access so visitors can see product images
+  allow read: if true;
+
+  // Only the admin can upload or delete product assets
+  allow write: if isAdmin();
+                
+}
+
+    // ==========================================
+    // 2. USER & PRODUCT PATHS
+    // ==========================================
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /reviewImages/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null; // Restrict to authenticated users
+    }
+
+    match /kyc/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
+    match /receipts/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+
+    // ==========================================
+    // 3. FINAL DEFAULT CATCH-ALL
+    // ==========================================
+    
+    // This allows admins to manage anything else, but denies all others.
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

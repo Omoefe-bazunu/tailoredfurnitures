@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/context/AuthContext";
 import {
   Package,
   Calendar,
@@ -8,105 +9,100 @@ import {
   Mail,
   MapPin,
   DollarSign,
-  RefreshCw,
-  CheckCircle2,
+  Loader2,
 } from "lucide-react";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  orderBy,
+  where,
+  onSnapshot,
+} from "firebase/firestore";
 import StatusBadge from "@/components/orders/StatusBadge";
 
 export default function StudioOrders() {
-  // 1. Curated Mock Orders Database representing successful checkouts
-  const [orders, setOrders] = useState([
-    {
-      id: "ORD-2026-8841",
-      customerName: "Elena Rostov",
-      customerEmail: "elena@maisonstudio.fr",
-      shippingAddress: "42 Rue du Faubourg Saint-Honoré",
-      city: "Paris",
-      country: "France",
-      createdAt: "May 22, 2026",
-      status: "processing",
-      items: [
-        {
-          id: "01",
-          name: "Aurelio Vento",
-          price: 9500,
-          quantity: 1,
-          category: "Italian",
-        },
-      ],
-      totalAmount: 9500,
-    },
-    {
-      id: "ORD-2026-1903",
-      customerName: "Marcus Adebayo",
-      customerEmail: "marcus.ade@ikoyiresidence.com",
-      shippingAddress: "12 Kingsway Road, Ikoyi",
-      city: "Lagos",
-      country: "Nigeria",
-      createdAt: "May 20, 2026",
-      status: "pending",
-      items: [
-        {
-          id: "02",
-          name: "Maison de Lumière",
-          price: 6450,
-          quantity: 2,
-          category: "French",
-        },
-        {
-          id: "03",
-          name: "Celestino Mare",
-          price: 14350,
-          quantity: 1,
-          category: "Italian",
-        },
-      ],
-      totalAmount: 27250,
-    },
-  ]);
+  const { user } = useAuth();
+  const [orders, setOrders] = useState(null);
 
-  // Handle local state mutation to simulate order status toggles
-  const handleToggleStatus = (orderId, currentStatus) => {
-    const statusMap = {
-      pending: "processing",
-      processing: "completed",
-      completed: "pending",
-    };
+  useEffect(() => {
+    if (!user) return;
 
-    const updatedOrders = orders.map((order) =>
-      order.id === orderId
-        ? { ...order, status: statusMap[currentStatus] }
-        : order,
+    const q = query(
+      collection(db, "orders"),
+      where("customerEmail", "==", user.email),
+      orderBy("createdAt", "desc"),
     );
-    setOrders(updatedOrders);
-  };
 
-  // Calculate high-tier gross metrics dynamically from active state ledger
-  const grossPipelineValue = orders.reduce(
-    (acc, order) => acc + order.totalAmount,
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setOrders(
+          snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+            createdAt: d.data().createdAt?.toDate?.()
+              ? d.data().createdAt.toDate().toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "N/A",
+          })),
+        );
+      },
+      (error) => {
+        console.error("Orders fetch failed:", error);
+        setOrders([]);
+      },
+    );
+
+    return () => unsub();
+  }, [user]);
+
+  const loading = user && orders === null;
+
+  const grossPipelineValue = (orders || []).reduce(
+    (acc, o) => acc + (o.totalAmount || 0),
     0,
   );
-  const activeAllocationsCount = orders.reduce(
-    (acc, order) => acc + order.items.reduce((sum, i) => sum + i.quantity, 0),
+
+  const totalUnits = (orders || []).reduce(
+    (acc, o) => acc + (o.items || []).reduce((s, i) => s + i.quantity, 0),
     0,
   );
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center text-muted font-body text-xs uppercase tracking-widest">
+        <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading orders...
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 font-body text-xs tracking-widest uppercase text-muted">
+        Please sign in to view your historical purchases.
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground pt-12 pb-20 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
       <div className="max-w-7xl mx-auto space-y-12">
-        {/* Dashboard Branding Header */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-6 border-b border-foreground/5 pb-8">
           <div className="space-y-2">
             <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-primary flex items-center gap-4">
               <span className="inline-block w-4 h-[1px] bg-primary/40 shrink-0"></span>
-              Order Management Page
+              Order Management
             </p>
             <h1 className="font-heading text-4xl font-light tracking-tight">
               Order Details
             </h1>
           </div>
 
-          {/* Strategic High-Ticket Financial Overview Indicators */}
           <div className="flex items-center gap-8 font-body border border-foreground/10 p-4 bg-card">
             <div>
               <span className="block text-[8px] text-muted uppercase tracking-wider mb-0.5">
@@ -122,123 +118,108 @@ export default function StudioOrders() {
                 Total Items Ordered
               </span>
               <span className="text-lg font-light tracking-wide">
-                {activeAllocationsCount} Units
+                {totalUnits} Units
               </span>
             </div>
           </div>
         </div>
 
-        {/* Master List Stream */}
-        <div className="space-y-8">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="premium-frame bg-card p-6 md:p-8 relative shadow-lg flex flex-col gap-6"
-            >
-              <div className="absolute inset-0 border border-foreground/5 pointer-events-none m-3"></div>
+        {!orders || orders.length === 0 ? (
+          <div className="text-center py-24 font-body text-xs text-muted uppercase tracking-widest">
+            No orders yet.
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {orders.map((order) => (
+              <div
+                key={order.id}
+                className="premium-frame bg-card p-6 md:p-8 relative shadow-lg flex flex-col gap-6"
+              >
+                <div className="absolute inset-0 border border-foreground/5 pointer-events-none m-3"></div>
 
-              {/* Top Meta Row */}
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-foreground/5 pb-4 z-10">
-                <div className="flex flex-wrap items-center gap-4 md:gap-6 font-body text-xs text-muted">
-                  <span className="font-heading font-semibold text-foreground tracking-wide text-sm flex items-center gap-1.5">
-                    <Package className="w-4 h-4 text-primary" /> {order.id}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" /> {order.createdAt}
-                  </span>
-                </div>
+                {/* Top row */}
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-foreground/5 pb-4 z-10">
+                  <div className="flex flex-wrap items-center gap-4 md:gap-6 font-body text-xs text-muted">
+                    <span className="font-heading font-semibold text-foreground tracking-wide text-sm flex items-center gap-1.5">
+                      <Package className="w-4 h-4 text-primary" />
+                      ORD-{order.id.slice(0, 8).toUpperCase()}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" /> {order.createdAt}
+                    </span>
+                  </div>
 
-                {/* Interactive Status Controls Component Group */}
-                <div className="flex items-center gap-3 self-start md:self-auto">
-                  <StatusBadge status={order.status} />
-                  <button
-                    onClick={() => handleToggleStatus(order.id, order.status)}
-                    className="p-2 border border-foreground/10 hover:border-foreground/30 text-muted hover:text-foreground bg-background transition-colors flex items-center gap-1.5 font-body text-[9px] tracking-widest uppercase font-medium"
-                    title="Simulate workflow status modification cycle"
-                  >
-                    <RefreshCw className="w-3 h-3" /> Refresh Status
-                  </button>
-                </div>
-              </div>
-
-              {/* Central Information Split Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start z-10">
-                {/* Column A: Shipping Credentials Details */}
-                <div className="lg:col-span-5 space-y-4 font-body text-xs border-r border-foreground/5 pr-4">
-                  <span className="block text-[9px] tracking-widest uppercase text-primary font-semibold">
-                    | Customer Credentials
-                  </span>
-
-                  <div className="space-y-2 text-muted">
-                    <p className="flex items-center gap-2 text-foreground font-light">
-                      <User className="w-3.5 h-3.5 text-muted/60" />{" "}
-                      {order.customerName}
-                    </p>
-                    <p className="flex items-center gap-2 font-light">
-                      <Mail className="w-3.5 h-3.5 text-muted/60" />{" "}
-                      {order.customerEmail}
-                    </p>
-                    <p className="flex items-start gap-2 font-light leading-relaxed">
-                      <MapPin className="w-3.5 h-3.5 text-muted/60 mt-0.5 shrink-0" />
-                      <span>
-                        {order.shippingAddress}, {order.city}, {order.country}
-                      </span>
-                    </p>
+                  <div className="flex items-center gap-3 self-start md:self-auto">
+                    <StatusBadge status={order.status} />
                   </div>
                 </div>
 
-                {/* Column B: Itemized Allocated Artworks Breakdown */}
-                <div className="lg:col-span-7 space-y-4">
-                  <span className="block font-body text-[9px] tracking-widest uppercase text-primary font-semibold">
-                    | Allocation Components
-                  </span>
+                {/* Info grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start z-10">
+                  {/* Customer info */}
+                  <div className="lg:col-span-5 space-y-4 font-body text-xs border-r border-foreground/5 pr-4">
+                    <span className="block text-[9px] tracking-widest uppercase text-primary font-semibold">
+                      | Customer Details
+                    </span>
+                    <div className="space-y-2 text-muted">
+                      <p className="flex items-center gap-2 text-foreground font-light">
+                        <User className="w-3.5 h-3.5 text-muted/60" />{" "}
+                        {order.customerName}
+                      </p>
+                      <p className="flex items-center gap-2 font-light">
+                        <Mail className="w-3.5 h-3.5 text-muted/60" />{" "}
+                        {order.customerEmail}
+                      </p>
+                      <p className="flex items-start gap-2 font-light leading-relaxed">
+                        <MapPin className="w-3.5 h-3.5 text-muted/60 mt-0.5 shrink-0" />
+                        <span>
+                          {order.shippingAddress}, {order.city}, {order.country}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
 
-                  <div className="divide-y divide-foreground/5 space-y-3">
-                    {order.items.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className={`${idx > 0 ? "pt-3" : ""} flex justify-between items-center text-xs font-body`}
-                      >
-                        <div className="space-y-0.5">
-                          <h4 className="font-heading font-medium text-foreground text-sm">
-                            {item.name}
-                          </h4>
-                          <p className="text-[9px] text-muted tracking-wider uppercase">
-                            Qty: {item.quantity} {item.category} School
-                            Framework
-                          </p>
+                  {/* Items */}
+                  <div className="lg:col-span-7 space-y-4">
+                    <span className="block font-body text-[9px] tracking-widest uppercase text-primary font-semibold">
+                      | Items Ordered
+                    </span>
+                    <div className="divide-y divide-foreground/5 space-y-3">
+                      {(order.items || []).map((item, idx) => (
+                        <div
+                          key={idx}
+                          className={`${idx > 0 ? "pt-3" : ""} flex justify-between items-center text-xs font-body`}
+                        >
+                          <div className="space-y-0.5">
+                            <h4 className="font-heading font-medium text-foreground text-sm">
+                              {item.name}
+                            </h4>
+                            <p className="text-[9px] text-muted tracking-wider uppercase">
+                              Qty: {item.quantity} · {item.category}
+                            </p>
+                          </div>
+                          <span className="font-light tracking-wide text-foreground">
+                            ${(item.price * item.quantity).toLocaleString()}
+                          </span>
                         </div>
-                        <span className="font-light tracking-wide text-foreground">
-                          ${(item.price * item.quantity).toLocaleString()}
+                      ))}
+
+                      <div className="pt-4 flex justify-between items-baseline font-body">
+                        <span className="text-[9px] uppercase tracking-wider text-muted">
+                          Order Total
+                        </span>
+                        <span className="text-base font-light tracking-wide text-foreground flex items-center">
+                          <DollarSign className="w-3.5 h-3.5 text-muted" />
+                          {(order.totalAmount || 0).toLocaleString()}
                         </span>
                       </div>
-                    ))}
-
-                    {/* Item Total Block */}
-                    <div className="pt-4 flex justify-between items-baseline font-body">
-                      <span className="text-[9px] uppercase tracking-wider text-muted">
-                        Gross Order Valuation
-                      </span>
-                      <span className="text-base font-light tracking-wide text-foreground flex items-center">
-                        <DollarSign className="w-3.5 h-3.5 text-muted" />{" "}
-                        {order.totalAmount.toLocaleString()}
-                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-
-              {/* Bottom Operational Action Notice */}
-              {order.status === "completed" && (
-                <div className="bg-emerald-500/[0.02] border border-emerald-500/10 p-3 flex items-center gap-2 font-body text-[10px] tracking-wider uppercase text-emerald-600/90 z-10">
-                  <CheckCircle2 className="w-3.5 h-3.5 stroke-[2]" />{" "}
-                  Fulfillment Cycle Finalized // Resend Delivery Notice
-                  Dispatched
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );

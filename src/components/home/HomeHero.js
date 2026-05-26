@@ -1,16 +1,65 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image"; // Native Next.js optimization engine injection
-import { Plus, Check, ArrowRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  limit,
+} from "firebase/firestore";
 
 export default function HomeHero() {
+  const [featuredItem, setFeaturedItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Queries the artworks collection for the item flagged as true for featured status
+    const q = query(
+      collection(db, "artworks"),
+      where("featured", "==", true),
+      limit(1),
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const docData = snapshot.docs[0];
+        setFeaturedItem({ id: docData.id, ...docData.data() });
+      } else {
+        setFeaturedItem(null); // Fallback layout tracking trigger
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="w-full min-h-[calc(100vh-80px)] flex items-center justify-center bg-background">
+        <p className="font-body text-xs tracking-widest uppercase text-muted animate-pulse">
+          Loading highlight piece...
+        </p>
+      </section>
+    );
+  }
+
+  // 100% Fail-Safe Fallback Block: Ensures the page handles empty collections gracefully
+  const activeItem = featuredItem || {
+    name: "Aurelio Vento",
+    slug: "aurelio-vento",
+    bio: "A sculptural tribute to invisible wind currents moving through ancient stone corridors along the Amalfi coast. Crafted to absolute structural precision and strict attention to structural micro-details.",
+    price: 9500,
+    imageUrl: "/image1.jpg",
+  };
+
   return (
     <section className="relative w-full min-h-[calc(100vh-80px)] flex items-center px-6 md:px-12 lg:px-24 py-12 overflow-hidden bg-background transition-colors duration-500">
-      {/* ──────────────────────────────────────────────────────────────────────
-         Organic Faded Zebra Stripe Overlay (Adaptive to Light/Dark Modes)
-         ────────────────────────────────────────────────────────────────────── */}
+      {/* Organic Faded Zebra Stripe Overlay */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.015] dark:opacity-[0.025] mix-blend-normal select-none"
         style={{
@@ -28,14 +77,11 @@ export default function HomeHero() {
           </div>
 
           <h1 className="font-heading text-display-xl font-light leading-none">
-            Aurelio Vento
+            {activeItem.name}
           </h1>
 
           <p className="font-body font-light text-body-premium text-muted max-w-xl leading-relaxed">
-            A sculptural tribute to invisible wind currents moving through
-            ancient stone corridors along the Amalfi coast. Crafted to absolute
-            structural precision and strict attention to structural
-            micro-details.
+            {activeItem.bio}
           </p>
 
           <div className="pt-0 sm:pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-6">
@@ -44,7 +90,7 @@ export default function HomeHero() {
                 Amount
               </span>
               <span className="font-body text-2xl font-light tracking-wide">
-                $9,500
+                ${Number(activeItem.price).toLocaleString()}
               </span>
             </div>
 
@@ -53,7 +99,7 @@ export default function HomeHero() {
                 <ArrowRight className="w-3.5 h-3.5 mr-1" /> GALLERY
               </Link>
               <Link
-                href="/gallery/aurelio-vento"
+                href={`/gallery/${activeItem.slug}`}
                 className="btn-luxury-outline"
               >
                 View Details
@@ -62,7 +108,7 @@ export default function HomeHero() {
           </div>
         </div>
 
-        {/* Hero Framed Masterpiece Container (3:4 Museum Proportion) */}
+        {/* Hero Framed Masterpiece Container */}
         <div className="lg:col-span-6 w-full flex justify-center lg:justify-end z-10">
           <div className="w-full max-w-[440px] aspect-[3/4] premium-frame bg-card p-6 relative group shadow-2xl">
             <div className="absolute inset-0 border border-foreground/10 pointer-events-none m-3"></div>
@@ -70,21 +116,22 @@ export default function HomeHero() {
             <div className="w-full h-full border border-foreground/5 bg-card overflow-hidden relative flex items-center justify-center">
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-foreground/[0.03] pointer-events-none z-10"></div>
 
-              {/* High-Fidelity Render Image Link */}
-              <Image
-                src="/image1.jpg"
-                alt="Aurelio Vento - Italian Fluidity Custom Wood Sculpture"
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 440px"
-                className="object-cover transform transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-              />
+              {activeItem.imageUrl && (
+                <Image
+                  src={activeItem.imageUrl}
+                  alt={activeItem.name}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 440px"
+                  className="object-cover transform transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+                />
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Behind details atmospheric spot shading */}
+      {/* Atmospheric Shading Spot Accent */}
       <div className="absolute right-0 top-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
     </section>
   );

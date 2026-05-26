@@ -84,7 +84,7 @@ export default function Footer() {
                 href="mailto:bookings@tailoredfurnitures.com"
                 className="hover:text-white transition-colors underline decoration-white/10"
               >
-                bookings@tailoredfurnitures.com
+                commissions@tailoredfurnitures.com
               </a>{" "}
             </li>
             <li className="pt-2 text-[10px] tracking-widest uppercase text-white/60 flex gap-4">

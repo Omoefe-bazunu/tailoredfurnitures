@@ -3,6 +3,7 @@ import { Playfair_Display, Inter } from "next/font/google";
 import Navbar from "@/components/NavBar";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/context/CartContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 // Optimize Playfair Display for our luxury editorial headings
 const playfair = Playfair_Display({
@@ -28,12 +29,14 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="antialiased selection:bg-primary selection:text-primary-foreground min-h-screen flex flex-col justify-between">
-        <CartProvider>
-          <Navbar />
-          {/* Safe breathing room buffer for our fixed navigation glass layer */}
-          <div className="pt-20 flex-grow w-full">{children}</div>
-          <Footer />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Navbar />
+            {/* Safe breathing room buffer for our fixed navigation glass layer */}
+            <div className="pt-20 flex-grow w-full">{children}</div>
+            <Footer />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
