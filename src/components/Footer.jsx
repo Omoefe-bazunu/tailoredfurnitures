@@ -30,7 +30,7 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Center Column: Interactive Exhibition Portals */}
+        {/* Center Column: Interactive Exhibition Portals
         <div className="md:col-span-3 space-y-3">
           <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
             Exhibitions
@@ -61,7 +61,7 @@ export default function Footer() {
               </Link>
             </li>
           </ul>
-        </div>
+        </div> */}
 
         {/* Right Column: Contact Concierge Credentials */}
         <div className="md:col-span-4 space-y-3">
