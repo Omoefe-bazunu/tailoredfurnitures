@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { db, storage } from "@/lib/firebase"; // ← make sure `storage` is exported from your firebase lib
+import { db, storage } from "@/lib/firebase";
 import {
   collection,
   onSnapshot,
@@ -12,12 +12,7 @@ import {
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-import {
-  ref,
-  uploadBytesResumable,
-  getDownloadURL,
-  deleteObject,
-} from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import {
   Trash2,
   Edit3,
@@ -31,6 +26,21 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
+
+/**
+ * Converts a name to a URL-safe slug.
+ * Handles accented characters properly:
+ * "Éclipse Royale" → "eclipse-royale"
+ * "Maison de Lumière" → "maison-de-lumiere"
+ */
+function toSlug(str) {
+  return str
+    .normalize("NFD") // decompose accents: É → E + ́
+    .replace(/[\u0300-\u036f]/g, "") // strip accent marks
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-") // replace non-alphanumeric with dash
+    .replace(/(^-|-$)/g, ""); // trim leading/trailing dashes
+}
 
 export default function AdminGalleryManager() {
   const [artworks, setArtworks] = useState([]);
@@ -64,15 +74,10 @@ export default function AdminGalleryManager() {
     return () => unsubscribe();
   }, []);
 
-  /**
-   * Uploads a file to Firebase Storage and returns the public download URL.
-   * Uses uploadBytesResumable so we get real progress ticks.
-   */
   const uploadToStorage = (file, path, onProgress) => {
     return new Promise((resolve, reject) => {
       const storageRef = ref(storage, path);
       const uploadTask = uploadBytesResumable(storageRef, file);
-
       uploadTask.on(
         "state_changed",
         (snapshot) => {
@@ -110,20 +115,15 @@ export default function AdminGalleryManager() {
   const handleCatalogSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !price || isSubmitting) return;
-
     setIsSubmitting(true);
 
     try {
-      const slug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "");
+      // Use the fixed toSlug() — handles accented chars correctly
+      const slug = toSlug(name.trim());
 
-      // Resolve image URL — upload new file, or keep existing
       let resolvedImgUrl = editingId
         ? artworks.find((a) => a.id === editingId)?.imageUrl
         : "";
-
       if (imageFile) {
         resolvedImgUrl = await uploadToStorage(
           imageFile,
@@ -132,11 +132,9 @@ export default function AdminGalleryManager() {
         );
       }
 
-      // Resolve video URL — upload new file, or keep existing
       let resolvedVidUrl = editingId
         ? artworks.find((a) => a.id === editingId)?.videoUrl
         : "";
-
       if (videoFile) {
         resolvedVidUrl = await uploadToStorage(
           videoFile,
@@ -147,7 +145,7 @@ export default function AdminGalleryManager() {
 
       const payloadData = {
         name: name.trim(),
-        slug,
+        slug, // always saved alongside the doc
         category,
         price: Number(price),
         bio: bio.trim(),
@@ -220,7 +218,9 @@ export default function AdminGalleryManager() {
                     {art.name}
                   </span>
                   <span className="text-[10px] text-muted block">
-                    {art.category} School — ${art.price.toLocaleString()}
+                    {art.category} School — $
+                    {Number(art.price).toLocaleString()} · slug:{" "}
+                    {art.slug || "⚠ missing"}
                   </span>
                 </div>
                 {isExpanded ? (
@@ -231,7 +231,7 @@ export default function AdminGalleryManager() {
               </div>
 
               {isExpanded && (
-                <div className="px-4 pb-4 pt-2 border-t border-foreground/5 bg-background/10 space-y-4 animate-fade-in">
+                <div className="px-4 pb-4 pt-2 border-t border-foreground/5 bg-background/10 space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px] bg-card p-3 border border-foreground/5">
                     <p>
                       <span className="text-muted block uppercase text-[8px]">
@@ -324,9 +324,18 @@ export default function AdminGalleryManager() {
             >
               <X className="w-4 h-4" />
             </button>
-            <h3 className="font-heading text-xl font-light">
-              {editingId ? "Update Artwork" : "Create Artwork"}
-            </h3>
+            <div className="space-y-1">
+              <h3 className="font-heading text-xl font-light">
+                {editingId ? "Update Artwork" : "Create Artwork"}
+              </h3>
+              {/* Live slug preview */}
+              {name && (
+                <p className="font-body text-[10px] text-muted">
+                  Slug preview:{" "}
+                  <span className="text-primary">{toSlug(name)}</span>
+                </p>
+              )}
+            </div>
 
             <form onSubmit={handleCatalogSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -339,7 +348,7 @@ export default function AdminGalleryManager() {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full h-11 bg-background border border-foreground/20 px-4 text-sm focus:outline-none"
+                    className="w-full h-11 bg-background border border-foreground/20 px-4 text-sm focus:outline-none focus:border-primary"
                   />
                 </div>
                 <div className="space-y-1">
@@ -351,7 +360,7 @@ export default function AdminGalleryManager() {
                     required
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    className="w-full h-11 bg-background border border-foreground/20 px-4 text-sm focus:outline-none"
+                    className="w-full h-11 bg-background border border-foreground/20 px-4 text-sm focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -397,7 +406,7 @@ export default function AdminGalleryManager() {
                 </div>
               </div>
 
-              {/* Real File Upload Fields */}
+              {/* File uploads */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-y border-foreground/5 py-4">
                 <div className="space-y-2">
                   <label className="uppercase text-muted text-[10px] flex items-center gap-1">
@@ -414,7 +423,7 @@ export default function AdminGalleryManager() {
                     className="text-[11px] file:mr-4 file:py-2 file:px-4 file:border file:border-foreground/10 file:bg-background file:text-foreground hover:file:bg-foreground/[0.02] cursor-pointer w-full"
                   />
                   {imgProgress > 0 && imgProgress < 100 && (
-                    <div className="w-full h-[3px] bg-foreground/10 mt-1">
+                    <div className="w-full h-[3px] bg-foreground/10">
                       <div
                         className="h-full bg-primary transition-all duration-150"
                         style={{ width: `${imgProgress}%` }}
@@ -440,7 +449,7 @@ export default function AdminGalleryManager() {
                     className="text-[11px] file:mr-4 file:py-2 file:px-4 file:border file:border-foreground/10 file:bg-background file:text-foreground hover:file:bg-foreground/[0.02] cursor-pointer w-full"
                   />
                   {vidProgress > 0 && vidProgress < 100 && (
-                    <div className="w-full h-[3px] bg-foreground/10 mt-1">
+                    <div className="w-full h-[3px] bg-foreground/10">
                       <div
                         className="h-full bg-primary transition-all duration-150"
                         style={{ width: `${vidProgress}%` }}
@@ -481,7 +490,7 @@ export default function AdminGalleryManager() {
 
       {/* Confirmation Modal */}
       {modalStatus.open && (
-        <div className="fixed inset-0 z-[120] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in">
+        <div className="fixed inset-0 z-[120] bg-background/90 backdrop-blur-sm flex items-center justify-center p-6">
           <div className="w-full max-w-sm bg-card border border-foreground/10 p-8 relative shadow-2xl text-center space-y-6">
             <button
               onClick={() => setModalStatus({ open: false, type: "success" })}
