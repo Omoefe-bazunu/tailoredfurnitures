@@ -163,7 +163,7 @@ export default function ArtworkDetail() {
               <p className="font-body text-[10px] tracking-widest uppercase text-muted font-medium">
                 Artistic Narrative
               </p>
-              <p className="font-body font-light text-sm text-muted leading-relaxed">
+              <p className="font-body whitespace-pre-wrap font-light text-sm text-muted leading-relaxed">
                 {artwork.bio}
               </p>
             </div>

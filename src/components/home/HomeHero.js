@@ -80,7 +80,7 @@ export default function HomeHero() {
             {activeItem.name}
           </h1>
 
-          <p className="font-body font-light text-body-premium text-muted max-w-xl leading-relaxed">
+          <p className="font-body font-light whitespace-pre-wrap text-body-premium text-muted max-w-xl leading-relaxed">
             {activeItem.bio}
           </p>
 

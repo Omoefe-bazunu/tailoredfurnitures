@@ -64,7 +64,7 @@ export default function ArtworkCard({ artwork }) {
             </span>
           </div>
 
-          <p className="font-body font-light text-xs text-muted leading-relaxed line-clamp-2">
+          <p className="font-body font-light whitespace-pre-wrap text-xs text-muted leading-relaxed line-clamp-2">
             {bio}
           </p>
         </div>

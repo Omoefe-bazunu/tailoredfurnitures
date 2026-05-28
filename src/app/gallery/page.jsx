@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import ArtworkCard from "@/components/gallery/ArtWorkCard";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+
+const PAGE_SIZE = 20;
 
 export default function Gallery() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [artworks, setArtworks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef(null);
 
-  // Sync index ledger stream from live database setup
   useEffect(() => {
     const q = query(collection(db, "artworks"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -29,6 +32,29 @@ export default function Gallery() {
       ? artworks
       : artworks.filter((item) => item.category === activeFilter);
 
+  const visibleArtworks = filteredArtworks.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredArtworks.length;
+
+  // Load next page when sentinel scrolls into view
+  const handleObserver = useCallback(
+    (entries) => {
+      if (entries[0].isIntersecting && hasMore) {
+        setVisibleCount((prev) => prev + PAGE_SIZE);
+      }
+    },
+    [hasMore],
+  );
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(handleObserver, {
+      threshold: 0.1,
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [handleObserver]);
+
   return (
     <main className="min-h-screen bg-background text-foreground py-16 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
       <div className="max-w-7xl mx-auto space-y-16">
@@ -44,12 +70,15 @@ export default function Gallery() {
             </h1>
           </div>
 
-          {/* Dynamic Filter Controls including the new Spanish selection criteria */}
+          {/* Dynamic Filter Controls */}
           <div className="flex flex-wrap items-center gap-2 border border-foreground/10 p-1 bg-card self-start md:self-auto">
             {["All", "Italian", "French", "Spanish"].map((filter) => (
               <button
                 key={filter}
-                onClick={() => setActiveFilter(filter)}
+                onClick={() => {
+                  setActiveFilter(filter);
+                  setVisibleCount(PAGE_SIZE); // reset scroll window on filter change
+                }}
                 className={`px-5 py-2 text-[10px] font-body tracking-widest uppercase font-medium transition-all duration-300 ${
                   activeFilter === filter
                     ? "bg-primary text-primary-foreground"
@@ -62,14 +91,14 @@ export default function Gallery() {
           </div>
         </div>
 
-        {/* Clean Grid Display Workspace */}
+        {/* Grid */}
         {loading ? (
           <div className="w-full text-center py-24 font-body text-xs tracking-widest uppercase text-muted animate-pulse">
             Loading collection data...
           </div>
-        ) : filteredArtworks.length > 0 ? (
+        ) : visibleArtworks.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-            {filteredArtworks.map((artwork) => (
+            {visibleArtworks.map((artwork) => (
               <ArtworkCard key={artwork.id} artwork={artwork} />
             ))}
           </div>
@@ -79,10 +108,20 @@ export default function Gallery() {
           </div>
         )}
 
-        {/* Page Meta Tracker Footer */}
-        <div className="border-t border-foreground/5 pt-8 grid grid-cols-1 lg:grid-cols-2 gap-4 justify-between items-center text-[9px] tracking-widest uppercase text-muted/60">
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="w-full flex justify-center py-8">
+          {hasMore && (
+            <span className="text-[9px] tracking-widest uppercase text-muted/40 font-body animate-pulse">
+              Loading more...
+            </span>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-foreground/5 pt-8 text-[9px] tracking-widest uppercase text-muted/60">
           <p>
-            Showing {filteredArtworks.length} of {artworks.length} Masterpieces
+            Showing {visibleArtworks.length} of {filteredArtworks.length}{" "}
+            Masterpieces
           </p>
         </div>
       </div>
