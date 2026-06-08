@@ -83,7 +83,7 @@ export default function StudioOrders() {
   if (!user) {
     return (
       <main className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6 font-body text-xs tracking-widest uppercase text-muted">
-        Please sign in to view your historical purchases.
+        Please sign in to view your order history.
       </main>
     );
   }

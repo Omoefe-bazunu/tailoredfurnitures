@@ -184,7 +184,7 @@ export default function SplashLoader() {
               transition={{ delay: writingDuration + 0.5, duration: 0.8 }}
               className="font-body text-[8px] tracking-[0.4em] uppercase text-primary font-medium"
             >
-              Studio Exhibition Initialization
+              Luxury.Power.Masterpieces.
             </motion.p>
           </div>
         </motion.div>

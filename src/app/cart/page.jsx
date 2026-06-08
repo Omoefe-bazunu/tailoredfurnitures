@@ -38,7 +38,7 @@ export default function CartPage() {
           href="/gallery"
           className="btn-luxury inline-block pt-4 px-8 text-xs tracking-widest uppercase"
         >
-          Return to Exhibition Catalog
+          Return to Gallery
         </Link>
       </main>
     );

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
-import { ArrowLeft, Lock, ArrowRight, Check } from "lucide-react";
+import { ArrowLeft, Lock, ArrowRight, Check, Zap } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -10,6 +10,12 @@ import {
   notifyAdminOfOrder,
   notifyClientOfOrder,
 } from "@/app/actions/orderNotify";
+
+const FLW_PUBLIC_KEY = process.env.NEXT_PUBLIC_FLW_PUBLIC_KEY || "";
+
+function generateTxRef() {
+  return `tailored-shop-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+}
 
 export default function CheckoutPage() {
   const { cart, getSubtotal, clearCart } = useCart();
@@ -27,59 +33,110 @@ export default function CheckoutPage() {
 
   const totalInvestment = getSubtotal();
 
-  const handleSubmit = async (e) => {
+  // Load Flutterwave script
+  useEffect(() => {
+    if (document.getElementById("flw-script")) return;
+    const script = document.createElement("script");
+    script.id = "flw-script";
+    script.src = "https://checkout.flutterwave.com/v3.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (cart.length === 0 || isProcessing) return;
+
+    const { name, email, address, city, country } = customerInfo;
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !address.trim() ||
+      !city.trim() ||
+      !country.trim()
+    ) {
+      setError("Please fill in all fields.");
+      return;
+    }
 
     setIsProcessing(true);
     setError("");
 
-    try {
-      const orderData = {
-        customerName: customerInfo.name.trim(),
-        customerEmail: customerInfo.email.trim(),
-        shippingAddress: customerInfo.address.trim(),
-        city: customerInfo.city.trim(),
-        country: customerInfo.country.trim(),
-        items: cart.map((item) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          category: item.category || "General",
-          dimensions: item.dimensions || "",
-        })),
-        totalAmount: totalInvestment,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      };
+    const txRef = generateTxRef();
 
-      // 1. Save to Firestore
-      const docRef = await addDoc(collection(db, "orders"), orderData);
+    window.FlutterwaveCheckout({
+      public_key: FLW_PUBLIC_KEY,
+      tx_ref: txRef,
+      amount: totalInvestment,
+      currency: "USD",
+      payment_options: "card, banktransfer, ussd",
+      customer: { email, phone_number: "", name },
+      customizations: {
+        title: "Tailored Furnitures",
+        description: `Order of ${cart.length} item(s)`,
+        logo: "/logo.png",
+      },
+      configurations: { session_duration: 10, max_retry_attempt: 3 },
+      callback: async function (payment) {
+        if (payment.status === "successful" || payment.status === "completed") {
+          try {
+            const orderData = {
+              customerName: name.trim(),
+              customerEmail: email.trim(),
+              shippingAddress: address.trim(),
+              city: city.trim(),
+              country: country.trim(),
+              items: cart.map((item) => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                category: item.category || "General",
+                dimensions: item.dimensions || "",
+              })),
+              totalAmount: totalInvestment,
+              status: "pending",
+              flutterwaveRef: payment.flw_ref,
+              transactionId: String(payment.transaction_id),
+              txRef: payment.tx_ref,
+              createdAt: serverTimestamp(),
+            };
 
-      // 2. Notify via server actions
-      await notifyAdminOfOrder({
-        orderId: docRef.id,
-        customerName: orderData.customerName,
-        customerEmail: orderData.customerEmail,
-        items: orderData.items,
-        totalAmount: orderData.totalAmount,
-      });
+            const docRef = await addDoc(collection(db, "orders"), orderData);
 
-      await notifyClientOfOrder({
-        customerName: orderData.customerName,
-        customerEmail: orderData.customerEmail,
-        orderId: docRef.id,
-        totalAmount: orderData.totalAmount,
-      });
+            await notifyAdminOfOrder({
+              orderId: docRef.id,
+              customerName: orderData.customerName,
+              customerEmail: orderData.customerEmail,
+              items: orderData.items,
+              totalAmount: orderData.totalAmount,
+            });
 
-      setShowSuccessModal(true);
-    } catch (err) {
-      console.error("Order submission error:", err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
+            await notifyClientOfOrder({
+              customerName: orderData.customerName,
+              customerEmail: orderData.customerEmail,
+              orderId: docRef.id,
+              totalAmount: orderData.totalAmount,
+            });
+
+            setShowSuccessModal(true);
+          } catch (err) {
+            console.error("Order submission error:", err);
+            setError(
+              "Payment received but order saving failed. Please contact support.",
+            );
+          } finally {
+            setIsProcessing(false);
+          }
+        } else {
+          setIsProcessing(false);
+          setError("Payment was not completed. Please try again.");
+        }
+      },
+      onclose: function () {
+        setIsProcessing(false);
+      },
+    });
   };
 
   const handleModalClose = () => {
@@ -247,20 +304,21 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={isProcessing}
-                className="btn-luxury w-full h-14 relative flex items-center justify-center group border border-transparent disabled:opacity-50"
+                className="btn-luxury w-full h-14 relative flex items-center justify-center gap-2 group border border-transparent disabled:opacity-50"
               >
                 {isProcessing ? (
                   <span className="inline-flex items-center gap-2">
                     <span className="w-3.5 h-3.5 border-2 border-background border-t-transparent rounded-full animate-spin"></span>
-                    Processing Order...
+                    Processing...
                   </span>
                 ) : (
-                  <>
-                    <Lock className="w-3.5 h-3.5 mr-1.5 opacity-60" /> Confirm
-                    Order
-                  </>
+                  <>Pay ${totalInvestment.toLocaleString()}</>
                 )}
               </button>
+
+              <p className="text-center text-[10px] text-muted tracking-wider">
+                🔒 Secured by Flutterwave · Card · Bank Transfer · USSD
+              </p>
             </form>
           </div>
 
@@ -270,7 +328,6 @@ export default function CheckoutPage() {
               <span className="block font-body text-[10px] tracking-widest text-muted uppercase font-medium">
                 Order Preview
               </span>
-
               {cart.map((item) => (
                 <div
                   key={item.id}
@@ -289,7 +346,6 @@ export default function CheckoutPage() {
                   </span>
                 </div>
               ))}
-
               <div className="pt-4 flex justify-between items-baseline font-body">
                 <span className="text-[10px] uppercase tracking-wider text-muted">
                   Total
@@ -308,11 +364,9 @@ export default function CheckoutPage() {
         <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-6 gallery-fade">
           <div className="w-full max-w-md bg-card border border-foreground/10 p-8 text-center space-y-6 relative shadow-2xl">
             <div className="absolute inset-0 border border-foreground/5 pointer-events-none m-2"></div>
-
             <div className="w-12 h-12 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center mx-auto">
               <Check className="w-5 h-5 text-primary stroke-[2.5]" />
             </div>
-
             <div className="space-y-2">
               <span className="text-[9px] tracking-[0.3em] font-medium uppercase text-primary">
                 Order Confirmed
@@ -326,7 +380,6 @@ export default function CheckoutPage() {
                 section.
               </p>
             </div>
-
             <button
               onClick={handleModalClose}
               className="btn-luxury w-full h-12 flex items-center justify-center"

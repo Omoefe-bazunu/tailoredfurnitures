@@ -481,7 +481,7 @@ export default function AdminGalleryManager() {
                 className="btn-luxury w-full h-12 flex items-center justify-center gap-2 font-semibold tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-3.5 h-3.5" />
-                {isSubmitting ? "Uploading..." : "Commit Structural Entry"}
+                {isSubmitting ? "Uploading..." : "uPLOAD & sAVE"}
               </button>
             </form>
           </div>
