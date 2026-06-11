@@ -1,5 +1,5 @@
 import React from "react";
-import Link from "next/link"; // Next.js performance route layer injection
+import Link from "next/link";
 import Image from "next/image";
 
 export default function Footer() {
@@ -30,7 +30,7 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Center Column: Interactive Exhibition Portals
+        {/* Center Column: Interactive Exhibition Portals */}
         <div className="md:col-span-3 space-y-3">
           <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
             Exhibitions
@@ -54,6 +54,14 @@ export default function Footer() {
             </li>
             <li>
               <Link
+                href="/gallery?filter=Spanish"
+                className="hover:text-white transition-colors"
+              >
+                The Spanish Collection
+              </Link>
+            </li>
+            <li>
+              <Link
                 href="/commissions"
                 className="hover:text-white transition-colors"
               >
@@ -61,59 +69,55 @@ export default function Footer() {
               </Link>
             </li>
           </ul>
-        </div> */}
+        </div>
 
         {/* Right Column: Contact Concierge Credentials */}
-        <div className="md:col-span-4 space-y-3">
-          <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
-            Contact & Socials
-          </p>
-          <ul className="space-y-2 font-body text-xs text-white/70 font-light">
-            <li>
-              General:{" "}
-              <a
-                href="mailto:info@tailoredfurnitures.com"
-                className="hover:text-white transition-colors underline decoration-white/10"
-              >
-                info@tailoredfurnitures.com
-              </a>{" "}
-            </li>
-            <li>
-              Bookings:{" "}
-              <a
-                href="mailto:bookings@tailoredfurnitures.com"
-                className="hover:text-white transition-colors underline decoration-white/10"
-              >
-                commissions@tailoredfurnitures.com
-              </a>{" "}
-            </li>
-            <li className="pt-2 text-[10px] tracking-widest uppercase text-white/60 flex gap-4">
-              <a
-                href="https://instagram.com/tailoredfurnitures"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Instagram
-              </a>{" "}
-              <a
-                href="https://facebook.com/tailoredfurnitures "
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                Facebook
-              </a>{" "}
-              <a
-                href="https://tiktok.com/@tailoredfurnitures"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                TikTok
-              </a>{" "}
-            </li>
-          </ul>
+        <div className="md:col-span-4 space-y-4">
+          <div className="space-y-2">
+            <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
+              Contact Concierge
+            </p>
+            <ul className="space-y-2 font-body text-xs text-white/70 font-light">
+              <li>
+                General:{" "}
+                <a
+                  href="mailto:info@tailoredfurnitures.com"
+                  className="hover:text-white transition-colors underline decoration-white/10"
+                >
+                  info@tailoredfurnitures.com
+                </a>
+              </li>
+              <li>
+                Bookings:{" "}
+                <a
+                  href="mailto:bookings@tailoredfurnitures.com"
+                  className="hover:text-white transition-colors underline decoration-white/10"
+                >
+                  commissions@tailoredfurnitures.com
+                </a>
+              </li>
+              <li>
+                Call:{" "}
+                <a
+                  href="tel:+14482191390"
+                  className="hover:text-white transition-colors font-medium tracking-wide"
+                >
+                  +1 (448) 219-1390
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Physical Headquarters Address Block */}
+          <div className="space-y-1 pt-2 border-t border-white/5">
+            <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
+              Contact Address
+            </p>
+            <p className="font-body font-light text-xs text-white/60 leading-relaxed">
+              30N Gould St Ste N<br />
+              Sheridan, WY 82801
+            </p>
+          </div>
         </div>
       </div>
 

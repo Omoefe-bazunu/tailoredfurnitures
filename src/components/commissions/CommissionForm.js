@@ -88,6 +88,13 @@ export default function CommissionForm() {
       await notifyAdminOfCommission(payload);
       await notifyClientOfCommission(payload);
 
+      // Track the explicit Google Ads Submit Lead Form conversion event safely
+      if (typeof window !== "undefined" && window.gtag) {
+        window.gtag("event", "conversion", {
+          send_to: "AW-18217121132/rqqjCIzzhr0cEOzqzO5D",
+        });
+      }
+
       setModalState({ open: true, type: "success" });
       setFormData({
         name: "",

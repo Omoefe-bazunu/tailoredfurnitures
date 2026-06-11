@@ -119,6 +119,18 @@ export default function CheckoutPage() {
               totalAmount: orderData.totalAmount,
             });
 
+            // ──────────────────────────────────────────────────────────────────────
+            // TRACK GOOGLE ADS PURCHASE CONVERSION (Option 2 - Page View/Sale Snippet)
+            // ──────────────────────────────────────────────────────────────────────
+            if (typeof window !== "undefined" && window.gtag) {
+              window.gtag("event", "conversion", {
+                send_to: "AW-18217121132/zwGiCI_zhr0cEOzqzO5D",
+                value: totalInvestment,
+                currency: "USD",
+                transaction_id: docRef.id,
+              });
+            }
+
             setShowSuccessModal(true);
           } catch (err) {
             console.error("Order submission error:", err);
@@ -392,3 +404,59 @@ export default function CheckoutPage() {
     </main>
   );
 }
+
+// callback: async function (payment) {
+//   if (payment.status === "successful" || payment.status === "completed") {
+//     try {
+//       const orderData = {
+//         customerName: name.trim(),
+//         customerEmail: email.trim(),
+//         shippingAddress: address.trim(),
+//         city: city.trim(),
+//         country: country.trim(),
+//         items: cart.map((item) => ({
+//           id: item.id,
+//           name: item.name,
+//           price: item.price,
+//           quantity: item.quantity,
+//           category: item.category || "General",
+//           dimensions: item.dimensions || "",
+//         })),
+//         totalAmount: totalInvestment,
+//         status: "pending",
+//         flutterwaveRef: payment.flw_ref,
+//         transactionId: String(payment.transaction_id),
+//         txRef: payment.tx_ref,
+//         createdAt: serverTimestamp(),
+//       };
+
+//       const docRef = await addDoc(collection(db, "orders"), orderData);
+
+//       await notifyAdminOfOrder({
+//         orderId: docRef.id,
+//         customerName: orderData.customerName,
+//         customerEmail: orderData.customerEmail,
+//         items: orderData.items,
+//         totalAmount: orderData.totalAmount,
+//       });
+
+//       await notifyClientOfOrder({
+//         customerName: orderData.customerName,
+//         customerEmail: orderData.customerEmail,
+//         orderId: docRef.id,
+//         totalAmount: orderData.totalAmount,
+//       });
+
+//       setShowSuccessModal(true);
+//     } catch (err) {
+//       console.error("Order submission error:", err);
+//       setError(
+//         "Payment received but order saving failed. Please contact support.",
+//       );
+//     } finally {
+//       setIsProcessing(false);
+//     }
+//   } else {
+//     setIsProcessing(false);
+//     setError("Payment was not completed. Please try again.");
+//   }
