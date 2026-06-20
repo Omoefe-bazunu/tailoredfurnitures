@@ -30,45 +30,65 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Center Column: Interactive Exhibition Portals */}
-        <div className="md:col-span-3 space-y-3">
-          <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
-            Exhibitions
-          </p>
-          <ul className="space-y-2 font-body text-xs text-white/70 font-light">
-            <li>
-              <Link
-                href="/gallery?filter=Italian"
-                className="hover:text-white transition-colors"
-              >
-                The Italian Collection
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/gallery?filter=French"
-                className="hover:text-white transition-colors"
-              >
-                The French Collection
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/gallery?filter=Spanish"
-                className="hover:text-white transition-colors"
-              >
-                The Spanish Collection
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/commissions"
-                className="hover:text-white transition-colors"
-              >
-                Custom Installations
-              </Link>
-            </li>
-          </ul>
+        {/* Center Column: Interactive Exhibition Portals & Legal Links */}
+        <div className="md:col-span-3 space-y-6">
+          <div className="space-y-3">
+            <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
+              Exhibitions
+            </p>
+            <ul className="space-y-2 font-body text-xs text-white/70 font-light">
+              <li>
+                <Link
+                  href="/gallery?filter=Italian"
+                  className="hover:text-white transition-colors"
+                >
+                  The Italian Collection
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/gallery?filter=French"
+                  className="hover:text-white transition-colors"
+                >
+                  The French Collection
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  href="/commissions"
+                  className="hover:text-white transition-colors"
+                >
+                  Custom Installations
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal Pages Sub-Section */}
+          <div className="space-y-3 pt-2 border-t border-white/5">
+            <p className="font-body text-[10px] tracking-widest uppercase text-white/40 font-semibold">
+              Legal & Terms
+            </p>
+            <ul className="space-y-2 font-body text-xs text-white/70 font-light">
+              <li>
+                <Link
+                  href="/policies"
+                  className="hover:text-white transition-colors"
+                >
+                  Studio Policies
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/terms"
+                  className="hover:text-white transition-colors"
+                >
+                  Terms & Conditions
+                </Link>
+              </li>
+            </ul>
+          </div>
         </div>
 
         {/* Right Column: Contact Concierge Credentials */}

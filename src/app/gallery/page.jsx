@@ -72,7 +72,7 @@ export default function Gallery() {
 
           {/* Dynamic Filter Controls */}
           <div className="flex flex-wrap items-center gap-2 border border-foreground/10 p-1 bg-card self-start md:self-auto">
-            {["All", "Italian", "French", "Spanish"].map((filter) => (
+            {["All", "Italian", "French"].map((filter) => (
               <button
                 key={filter}
                 onClick={() => {

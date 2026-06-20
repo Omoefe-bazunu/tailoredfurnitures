@@ -2,7 +2,7 @@ import "./globals.css";
 import { Playfair_Display, Inter } from "next/font/google";
 import Navbar from "@/components/NavBar";
 import Footer from "@/components/Footer";
-import WhatsAppWidget from "@/components/WhatsAppWidget";
+// import WhatsAppWidget from "@/components/WhatsAppWidget";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import Script from "next/script";
@@ -54,7 +54,7 @@ export default function RootLayout({ children }) {
             <div className="pt-20 flex-grow w-full">{children}</div>
 
             {/* Injected Global WhatsApp Dynamic Widget Integration Channel Hook */}
-            <WhatsAppWidget />
+            {/* <WhatsAppWidget /> */}
 
             <Footer />
           </CartProvider>
