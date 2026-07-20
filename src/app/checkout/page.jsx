@@ -1,26 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { ArrowLeft, Lock, ArrowRight, Check, Zap } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import {
-  notifyAdminOfOrder,
-  notifyClientOfOrder,
-} from "@/app/actions/orderNotify";
-
-const FLW_PUBLIC_KEY = process.env.NEXT_PUBLIC_FLW_PUBLIC_KEY || "";
-
-function generateTxRef() {
-  return `tailored-shop-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
-}
 
 export default function CheckoutPage() {
-  const { cart, getSubtotal, clearCart } = useCart();
+  const { cart, getSubtotal } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [error, setError] = useState("");
 
   const [customerInfo, setCustomerInfo] = useState({
@@ -33,17 +22,7 @@ export default function CheckoutPage() {
 
   const totalInvestment = getSubtotal();
 
-  // Load Flutterwave script
-  useEffect(() => {
-    if (document.getElementById("flw-script")) return;
-    const script = document.createElement("script");
-    script.id = "flw-script";
-    script.src = "https://checkout.flutterwave.com/v3.js";
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (cart.length === 0 || isProcessing) return;
 
@@ -62,102 +41,62 @@ export default function CheckoutPage() {
     setIsProcessing(true);
     setError("");
 
-    const txRef = generateTxRef();
+    try {
+      // 1. Save a pending order first, before redirecting to Stripe
+      const orderData = {
+        customerName: name.trim(),
+        customerEmail: email.trim(),
+        shippingAddress: address.trim(),
+        city: city.trim(),
+        country: country.trim(),
+        items: cart.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          category: item.category || "General",
+          dimensions: item.dimensions || "",
+        })),
+        totalAmount: totalInvestment,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      };
 
-    window.FlutterwaveCheckout({
-      public_key: FLW_PUBLIC_KEY,
-      tx_ref: txRef,
-      amount: totalInvestment,
-      currency: "USD",
-      payment_options: "card, banktransfer, ussd",
-      customer: { email, phone_number: "", name },
-      customizations: {
-        title: "Tailored Furnitures",
-        description: `Order of ${cart.length} item(s)`,
-        logo: "/logo.png",
-      },
-      configurations: { session_duration: 10, max_retry_attempt: 3 },
-      callback: async function (payment) {
-        if (payment.status === "successful" || payment.status === "completed") {
-          try {
-            const orderData = {
-              customerName: name.trim(),
-              customerEmail: email.trim(),
-              shippingAddress: address.trim(),
-              city: city.trim(),
-              country: country.trim(),
-              items: cart.map((item) => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity,
-                category: item.category || "General",
-                dimensions: item.dimensions || "",
-              })),
-              totalAmount: totalInvestment,
-              status: "pending",
-              flutterwaveRef: payment.flw_ref,
-              transactionId: String(payment.transaction_id),
-              txRef: payment.tx_ref,
-              createdAt: serverTimestamp(),
-            };
+      const docRef = await addDoc(collection(db, "orders"), orderData);
 
-            const docRef = await addDoc(collection(db, "orders"), orderData);
+      // 2. Create the Stripe Checkout Session server-side
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/create-checkout-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cart: orderData.items,
+            orderId: docRef.id,
+            customerEmail: email.trim(),
+          }),
+        },
+      );
 
-            await notifyAdminOfOrder({
-              orderId: docRef.id,
-              customerName: orderData.customerName,
-              customerEmail: orderData.customerEmail,
-              items: orderData.items,
-              totalAmount: orderData.totalAmount,
-            });
+      const data = await res.json();
 
-            await notifyClientOfOrder({
-              customerName: orderData.customerName,
-              customerEmail: orderData.customerEmail,
-              orderId: docRef.id,
-              totalAmount: orderData.totalAmount,
-            });
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Could not start checkout");
+      }
 
-            // ──────────────────────────────────────────────────────────────────────
-            // TRACK GOOGLE ADS PURCHASE CONVERSION (Option 2 - Page View/Sale Snippet)
-            // ──────────────────────────────────────────────────────────────────────
-            if (typeof window !== "undefined" && window.gtag) {
-              window.gtag("event", "conversion", {
-                send_to: "AW-18217121132/zwGiCI_zhr0cEOzqzO5D",
-                value: totalInvestment,
-                currency: "USD",
-                transaction_id: docRef.id,
-              });
-            }
-
-            setShowSuccessModal(true);
-          } catch (err) {
-            console.error("Order submission error:", err);
-            setError(
-              "Payment received but order saving failed. Please contact support.",
-            );
-          } finally {
-            setIsProcessing(false);
-          }
-        } else {
-          setIsProcessing(false);
-          setError("Payment was not completed. Please try again.");
-        }
-      },
-      onclose: function () {
-        setIsProcessing(false);
-      },
-    });
+      // 3. Redirect to Stripe's hosted checkout page
+      window.location.assign(data.url);
+      // Note: cart is intentionally NOT cleared here — clear it on the
+      // /orders/[orderId]?status=success page after confirming payment,
+      // so an abandoned/cancelled checkout doesn't lose the cart.
+    } catch (err) {
+      console.error("Checkout error:", err);
+      setError("Something went wrong starting checkout. Please try again.");
+      setIsProcessing(false);
+    }
   };
 
-  const handleModalClose = () => {
-    setShowSuccessModal(false);
-    clearCart();
-    window.location.href = "/orders";
-  };
-
-  if (cart.length === 0 && !showSuccessModal) {
+  if (cart.length === 0) {
     return (
       <main className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4 gallery-fade">
         <h2 className="font-heading text-2xl font-light">
@@ -189,7 +128,6 @@ export default function CheckoutPage() {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          {/* Left: Form */}
           <div className="lg:col-span-7 premium-frame bg-card p-8 md:p-12 relative shadow-xl">
             <div className="absolute inset-0 border border-foreground/10 pointer-events-none m-3"></div>
 
@@ -321,7 +259,7 @@ export default function CheckoutPage() {
                 {isProcessing ? (
                   <span className="inline-flex items-center gap-2">
                     <span className="w-3.5 h-3.5 border-2 border-background border-t-transparent rounded-full animate-spin"></span>
-                    Processing...
+                    Redirecting to secure checkout...
                   </span>
                 ) : (
                   <>Pay ${totalInvestment.toLocaleString()}</>
@@ -329,12 +267,11 @@ export default function CheckoutPage() {
               </button>
 
               <p className="text-center text-[10px] text-muted tracking-wider">
-                🔒 Secured by Flutterwave · Card · Bank Transfer · USSD
+                🔒 Secured by Stripe · Card payments
               </p>
             </form>
           </div>
 
-          {/* Right: Order summary */}
           <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-28">
             <div className="p-6 border border-foreground/5 bg-card divide-y divide-foreground/5 space-y-4">
               <span className="block font-body text-[10px] tracking-widest text-muted uppercase font-medium">
@@ -350,7 +287,7 @@ export default function CheckoutPage() {
                       {item.name}
                     </h4>
                     <p className="font-body text-[9px] text-muted tracking-wider uppercase">
-                      Qty: {item.quantity} | {item.category} School
+                      Qty: {item.quantity} | {item.category}
                     </p>
                   </div>
                   <span className="font-body text-foreground font-light tracking-wide">
@@ -370,93 +307,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center p-6 gallery-fade">
-          <div className="w-full max-w-md bg-card border border-foreground/10 p-8 text-center space-y-6 relative shadow-2xl">
-            <div className="absolute inset-0 border border-foreground/5 pointer-events-none m-2"></div>
-            <div className="w-12 h-12 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center mx-auto">
-              <Check className="w-5 h-5 text-primary stroke-[2.5]" />
-            </div>
-            <div className="space-y-2">
-              <span className="text-[9px] tracking-[0.3em] font-medium uppercase text-primary">
-                Order Confirmed
-              </span>
-              <h3 className="font-heading text-3xl font-light tracking-tight">
-                Order Saved
-              </h3>
-              <p className="font-body font-light text-xs text-muted leading-relaxed max-w-sm mx-auto">
-                Your order has been saved and a confirmation has been sent to
-                your email. You can track your order status in the Orders
-                section.
-              </p>
-            </div>
-            <button
-              onClick={handleModalClose}
-              className="btn-luxury w-full h-12 flex items-center justify-center"
-            >
-              Track Order <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
-
-// callback: async function (payment) {
-//   if (payment.status === "successful" || payment.status === "completed") {
-//     try {
-//       const orderData = {
-//         customerName: name.trim(),
-//         customerEmail: email.trim(),
-//         shippingAddress: address.trim(),
-//         city: city.trim(),
-//         country: country.trim(),
-//         items: cart.map((item) => ({
-//           id: item.id,
-//           name: item.name,
-//           price: item.price,
-//           quantity: item.quantity,
-//           category: item.category || "General",
-//           dimensions: item.dimensions || "",
-//         })),
-//         totalAmount: totalInvestment,
-//         status: "pending",
-//         flutterwaveRef: payment.flw_ref,
-//         transactionId: String(payment.transaction_id),
-//         txRef: payment.tx_ref,
-//         createdAt: serverTimestamp(),
-//       };
-
-//       const docRef = await addDoc(collection(db, "orders"), orderData);
-
-//       await notifyAdminOfOrder({
-//         orderId: docRef.id,
-//         customerName: orderData.customerName,
-//         customerEmail: orderData.customerEmail,
-//         items: orderData.items,
-//         totalAmount: orderData.totalAmount,
-//       });
-
-//       await notifyClientOfOrder({
-//         customerName: orderData.customerName,
-//         customerEmail: orderData.customerEmail,
-//         orderId: docRef.id,
-//         totalAmount: orderData.totalAmount,
-//       });
-
-//       setShowSuccessModal(true);
-//     } catch (err) {
-//       console.error("Order submission error:", err);
-//       setError(
-//         "Payment received but order saving failed. Please contact support.",
-//       );
-//     } finally {
-//       setIsProcessing(false);
-//     }
-//   } else {
-//     setIsProcessing(false);
-//     setError("Payment was not completed. Please try again.");
-//   }
