@@ -1,110 +1,99 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import React, { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import {
-  Plus,
-  Minus,
-  Trash2,
-  ArrowRight,
-  ShieldCheck,
-  ArrowLeft,
-  ShoppingBag,
-  AlertTriangle,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default function CartPage() {
-  const { cart, updateQuantity, removeFromCart, getSubtotal } = useCart();
+export default function CheckoutPage() {
+  const { cart, getSubtotal } = useCart();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState("");
+
+  const [customerInfo, setCustomerInfo] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    country: "",
+  });
+
   const totalInvestment = getSubtotal();
-  const [removedItems, setRemovedItems] = useState([]);
-  const [checkingCart, setCheckingCart] = useState(() => cart.length > 0);
 
-  // Validate cart against Firestore once on load. Cart items are cached
-  // in localStorage indefinitely, so an artwork deleted or recreated
-  // since it was added would otherwise only surface as a checkout error.
-  useEffect(() => {
-    if (cart.length === 0) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (cart.length === 0 || isProcessing) return;
 
-    let cancelled = false;
+    const { name, email, address, city, country } = customerInfo;
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !address.trim() ||
+      !city.trim() ||
+      !country.trim()
+    ) {
+      setError("Please fill in all fields.");
+      return;
+    }
 
-    (async () => {
-      const staleNames = [];
+    setIsProcessing(true);
+    setError("");
 
-      await Promise.all(
-        cart.map(async (item) => {
-          try {
-            const snap = await getDoc(doc(db, "artworks", item.id));
-            if (!snap.exists()) {
-              staleNames.push(item.name);
-            }
-          } catch (e) {
-            console.error(`Failed to validate cart item ${item.id}:`, e);
-            // Network/read errors: leave the item in place rather than
-            // removing something that might actually still be valid.
-          }
-        }),
+    try {
+      // The backend now looks up real prices by product id and creates
+      // both the order doc and the Stripe session itself. We only send
+      // id + quantity, never price.
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/create-checkout-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cart: cart.map((item) => ({
+              id: item.id,
+              quantity: item.quantity,
+            })),
+            customerInfo: {
+              name: name.trim(),
+              email: email.trim(),
+              address: address.trim(),
+              city: city.trim(),
+              country: country.trim(),
+            },
+          }),
+        },
       );
 
-      if (cancelled) return;
+      const data = await res.json();
 
-      if (staleNames.length > 0) {
-        cart.forEach((item) => {
-          if (staleNames.includes(item.name)) removeFromCart(item.id);
-        });
-        setRemovedItems(staleNames);
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Could not start checkout");
       }
-      setCheckingCart(false);
-    })();
 
-    return () => {
-      cancelled = true;
-    };
-    // Intentionally run once on mount — re-running on every cart change
-    // would re-check items we've already validated.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (checkingCart) {
-    return (
-      <main className="min-h-[70vh] flex items-center justify-center font-body text-xs uppercase tracking-widest text-muted">
-        Checking selections...
-      </main>
-    );
-  }
+      window.location.assign(data.url);
+      // Note: cart is intentionally NOT cleared here — clear it on the
+      // /orders?status=success page after confirming payment, so an
+      // abandoned/cancelled checkout doesn't lose the cart.
+    } catch (err) {
+      console.error("Checkout error:", err);
+      setError("Something went wrong starting checkout. Please try again.");
+      setIsProcessing(false);
+    }
+  };
 
   if (cart.length === 0) {
     return (
-      <main className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-6 gallery-fade">
-        {removedItems.length > 0 && (
-          <div className="flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 text-amber-600 px-6 py-4 font-body text-xs tracking-wide max-w-md text-left">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>
-              {removedItems.join(", ")} {removedItems.length > 1 ? "are" : "is"}{" "}
-              no longer available and {removedItems.length > 1 ? "were" : "was"}{" "}
-              removed from your cart.
-            </span>
-          </div>
-        )}
-        <div className="w-8 h-8 border border-foreground/20 rounded-full flex items-center justify-center opacity-40">
-          <ShoppingBag className="w-4 h-4 text-muted" />
-        </div>
-        <div className="space-y-1">
-          <h2 className="font-heading text-2xl font-light">
-            Your Cart is Empty
-          </h2>
-          <p className="font-body text-xs text-muted max-w-sm mx-auto leading-relaxed">
-            You have not selected and added any piece to your cart yet. Explore
-            our gallery and add your favorite masterpieces to the cart for a
-            seamless checkout experience.
-          </p>
-        </div>
+      <main className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4 gallery-fade">
+        <h2 className="font-heading text-2xl font-light">
+          No Selections Found
+        </h2>
+        <p className="font-body text-xs text-muted max-w-xs mx-auto">
+          Your selection list is empty. Please select a masterpiece before
+          opening the checkout.
+        </p>
         <Link
           href="/gallery"
-          className="btn-luxury inline-block pt-4 px-8 text-xs tracking-widest uppercase"
+          className="btn-luxury inline-block text-xs tracking-widest uppercase"
         >
           Return to Gallery
         </Link>
@@ -113,167 +102,192 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground pt-12 pb-20 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade">
+    <main className="min-h-screen bg-background text-foreground pt-12 pb-20 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade relative">
       <div className="max-w-7xl mx-auto space-y-12">
-        {removedItems.length > 0 && (
-          <div className="flex items-start gap-3 border border-amber-500/20 bg-amber-500/5 text-amber-600 px-6 py-4 font-body text-xs tracking-wide">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>
-              {removedItems.join(", ")} {removedItems.length > 1 ? "are" : "is"}{" "}
-              no longer available and {removedItems.length > 1 ? "were" : "was"}{" "}
-              removed from your cart.
-            </span>
-          </div>
-        )}
+        <Link
+          href="/cart"
+          className="inline-flex items-center gap-2 font-body text-[10px] tracking-widest uppercase text-muted hover:text-foreground transition-colors group w-fit"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 transform transition-transform group-hover:-translate-x-1" />
+          Back to Cart
+        </Link>
 
-        {/* Header Block */}
-        <div className="border-b border-foreground/5 pb-6 space-y-2">
-          <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-primary">
-            Cart Summary
-          </p>
-          <h1 className="font-heading text-4xl font-light tracking-tight">
-            Your Selections
-          </h1>
-        </div>
-
-        {/* Workspace Matrix Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-          {/* Left Block: Item List Stream */}
-          <div className="lg:col-span-8 divide-y divide-foreground/5 border-b border-foreground/5">
-            {cart.map((item) => (
-              <div
-                key={item.id}
-                className="py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 group"
-              >
-                {/* Product Metadata Info Wrap */}
-                <div className="flex items-center gap-6">
-                  <div className="w-20 aspect-[3/4] relative bg-foreground/[0.02] border border-foreground/5 shrink-0">
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                        sizes="80px"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-card flex items-center justify-center text-[8px] tracking-tighter text-muted font-heading uppercase">
-                        [ Relief ]
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] tracking-widest font-medium uppercase text-primary">
-                      {item.category} School Framework
-                    </span>
-                    <h3 className="font-heading text-xl font-light text-foreground">
-                      {item.name}
-                    </h3>
-                    <p className="font-body text-[10px] text-muted font-light">
-                      Spec: {item.dimensions || 'Standard 48"x60"'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Quantitative Context Adjustment Controls Row */}
-                <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-8">
-                  {/* Fine Incrementor Controls */}
-                  <div className="flex items-center border border-foreground/20 bg-card h-10">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="px-3 h-full text-foreground/60 hover:text-foreground hover:bg-foreground/[0.02] transition-colors"
-                      aria-label="Reduce unit capacity"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="px-4 font-body text-xs font-light w-10 text-center select-none">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="px-3 h-full text-foreground/60 hover:text-foreground hover:bg-foreground/[0.02] transition-colors"
-                      aria-label="Increase unit capacity"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-
-                  {/* Calculations & Destruction Triggers Column */}
-                  <div className="text-right space-y-1 min-w-[80px]">
-                    <span className="block font-body text-sm text-foreground font-light tracking-wide">
-                      ${(item.price * item.quantity).toLocaleString()}
-                    </span>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="text-[9px] tracking-widest uppercase text-muted hover:text-red-500 inline-flex items-center gap-1 transition-colors"
-                      aria-label="Remove item allocation"
-                    >
-                      <Trash2 className="w-3 h-3 stroke-[1.5]" /> Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Right Block: Settlement Checkout Panel Overview */}
-          <div className="lg:col-span-4 premium-frame bg-card p-6 md:p-8 relative shadow-lg space-y-6 lg:sticky lg:top-28">
+          <div className="lg:col-span-7 premium-frame bg-card p-8 md:p-12 relative shadow-xl">
             <div className="absolute inset-0 border border-foreground/10 pointer-events-none m-3"></div>
 
-            <div className="space-y-2 relative z-10 border-b border-foreground/5 pb-4">
-              <h2 className="font-heading text-xl font-light tracking-tight">
-                Cart Summary
-              </h2>
-              <p className="text-[9px] text-muted uppercase tracking-widest font-light">
-                Below is a summary of your selections.
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-8 relative z-10 font-body text-xs"
+            >
+              <div className="space-y-2 border-b border-foreground/5 pb-4">
+                <h2 className="font-heading text-2xl font-light tracking-tight">
+                  Checkout Information
+                </h2>
+                <p className="text-[10px] text-muted uppercase tracking-widest">
+                  Specify delivery address
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <p className="font-body text-[10px] tracking-widest uppercase text-primary font-semibold">
+                  Client Identity
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-muted/80 uppercase tracking-wider font-medium">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customerInfo.name}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          name: e.target.value,
+                        })
+                      }
+                      className="w-full h-12 bg-background border border-foreground/20 px-4 focus:outline-none focus:border-primary text-foreground font-light text-sm"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-muted/80 uppercase tracking-wider font-medium">
+                      Email for Invoices
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={customerInfo.email}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          email: e.target.value,
+                        })
+                      }
+                      className="w-full h-12 bg-background border border-foreground/20 px-4 focus:outline-none focus:border-primary text-foreground font-light text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <p className="font-body text-[10px] tracking-widest uppercase text-primary font-semibold">
+                  Delivery Coordinates
+                </p>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-muted/80 uppercase tracking-wider font-medium">
+                      Street Address
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customerInfo.address}
+                      onChange={(e) =>
+                        setCustomerInfo({
+                          ...customerInfo,
+                          address: e.target.value,
+                        })
+                      }
+                      className="w-full h-12 bg-background border border-foreground/20 px-4 focus:outline-none focus:border-primary text-foreground font-light text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="block text-muted/80 uppercase tracking-wider font-medium">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={customerInfo.city}
+                        onChange={(e) =>
+                          setCustomerInfo({
+                            ...customerInfo,
+                            city: e.target.value,
+                          })
+                        }
+                        className="w-full h-12 bg-background border border-foreground/20 px-4 focus:outline-none focus:border-primary text-foreground font-light text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-muted/80 uppercase tracking-wider font-medium">
+                        Country
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={customerInfo.country}
+                        onChange={(e) =>
+                          setCustomerInfo({
+                            ...customerInfo,
+                            country: e.target.value,
+                          })
+                        }
+                        className="w-full h-12 bg-background border border-foreground/20 px-4 focus:outline-none focus:border-primary text-foreground font-light text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-red-500 font-body text-xs">{error}</p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isProcessing}
+                className="btn-luxury w-full h-14 relative flex items-center justify-center gap-2 group border border-transparent disabled:opacity-50"
+              >
+                {isProcessing ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-3.5 h-3.5 border-2 border-background border-t-transparent rounded-full animate-spin"></span>
+                    Redirecting to secure checkout...
+                  </span>
+                ) : (
+                  <>Pay ${totalInvestment.toLocaleString()}</>
+                )}
+              </button>
+
+              <p className="text-center text-[10px] text-muted tracking-wider">
+                🔒 Secured by Stripe · Card payments
               </p>
-            </div>
+            </form>
+          </div>
 
-            <div className="space-y-3 relative z-10 font-body text-xs">
-              <div className="flex justify-between text-muted/80">
-                <span>Total Masterpiece Allocation</span>
-                <span className="font-medium text-foreground">
-                  {cart.reduce((acc, i) => acc + i.quantity, 0)} Units
-                </span>
-              </div>
-              <div className="flex justify-between text-muted/80">
-                <span>Packaging</span>
-                <span className="text-primary tracking-widest font-semibold uppercase text-[10px]">
-                  Complimentary
-                </span>
-              </div>
-
-              <div className="w-full h-[1px] bg-foreground/5 my-4"></div>
-
-              <div className="flex justify-between items-baseline pt-2">
-                <span className="font-medium uppercase tracking-wider text-[10px] text-foreground">
-                  Total Investment
+          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-28">
+            <div className="p-6 border border-foreground/5 bg-card divide-y divide-foreground/5 space-y-4">
+              <span className="block font-body text-[10px] tracking-widest text-muted uppercase font-medium">
+                Order Preview
+              </span>
+              {cart.map((item) => (
+                <div
+                  key={item.id}
+                  className="pt-4 flex justify-between items-center text-xs"
+                >
+                  <div className="space-y-0.5">
+                    <h4 className="font-heading font-medium text-foreground text-sm">
+                      {item.name}
+                    </h4>
+                    <p className="font-body text-[9px] text-muted tracking-wider uppercase">
+                      Qty: {item.quantity} | {item.category}
+                    </p>
+                  </div>
+                  <span className="font-body text-foreground font-light tracking-wide">
+                    ${(item.price * item.quantity).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+              <div className="pt-4 flex justify-between items-baseline font-body">
+                <span className="text-[10px] uppercase tracking-wider text-muted">
+                  Total
                 </span>
                 <span className="text-xl font-light tracking-wide text-foreground">
                   ${totalInvestment.toLocaleString()}
                 </span>
               </div>
-            </div>
-
-            <div className="space-y-4 pt-4 relative z-10">
-              <Link
-                href="/checkout"
-                className="btn-luxury w-full h-14 flex items-center justify-center"
-              >
-                Proceed to Checkout <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Link>
-
-              <Link
-                href="/gallery"
-                className="inline-flex items-center justify-center gap-2 font-body text-[10px] tracking-widest uppercase text-muted hover:text-foreground transition-colors w-full text-center"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Continue Selection
-              </Link>
-            </div>
-
-            <div className="pt-2 border-t border-foreground/5 font-body text-[9px] tracking-wider uppercase text-muted/60 flex items-center gap-2 relative z-10">
-              <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Insured
-              Delivery & Crating Guarantees Applied
             </div>
           </div>
         </div>
