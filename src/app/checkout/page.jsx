@@ -2,10 +2,8 @@
 
 import React, { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function CheckoutPage() {
   const { cart, getSubtotal } = useCart();
@@ -42,38 +40,26 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      // 1. Save a pending order first, before redirecting to Stripe
-      const orderData = {
-        customerName: name.trim(),
-        customerEmail: email.trim(),
-        shippingAddress: address.trim(),
-        city: city.trim(),
-        country: country.trim(),
-        items: cart.map((item) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          category: item.category || "General",
-          dimensions: item.dimensions || "",
-        })),
-        totalAmount: totalInvestment,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      };
-
-      const docRef = await addDoc(collection(db, "orders"), orderData);
-
-      // 2. Create the Stripe Checkout Session server-side
+      // The backend now looks up real prices by product id and creates
+      // both the order doc and the Stripe session itself. We only send
+      // id + quantity, never price.
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/create-checkout-session`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            cart: orderData.items,
-            orderId: docRef.id,
-            customerEmail: email.trim(),
+            cart: cart.map((item) => ({
+              id: item.id,
+              quantity: item.quantity,
+            })),
+            customerInfo: {
+              name: name.trim(),
+              email: email.trim(),
+              address: address.trim(),
+              city: city.trim(),
+              country: country.trim(),
+            },
           }),
         },
       );
@@ -84,11 +70,10 @@ export default function CheckoutPage() {
         throw new Error(data.error || "Could not start checkout");
       }
 
-      // 3. Redirect to Stripe's hosted checkout page
       window.location.assign(data.url);
       // Note: cart is intentionally NOT cleared here — clear it on the
-      // /orders/[orderId]?status=success page after confirming payment,
-      // so an abandoned/cancelled checkout doesn't lose the cart.
+      // /orders?status=success page after confirming payment, so an
+      // abandoned/cancelled checkout doesn't lose the cart.
     } catch (err) {
       console.error("Checkout error:", err);
       setError("Something went wrong starting checkout. Please try again.");
