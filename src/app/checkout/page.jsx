@@ -5,6 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { auth } from "@/lib/firebase";
 
 export default function CheckoutPage() {
   const { cart, getSubtotal } = useCart();
@@ -36,9 +37,7 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      // Fetch a fresh token right before submitting — tokens expire,
-      // so grabbing it at render time (like before) was unreliable.
-      const idToken = user ? await user.getIdToken() : null;
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/create-checkout-session`,
@@ -54,7 +53,7 @@ export default function CheckoutPage() {
               city: city.trim(),
               country: country.trim(),
             },
-            idToken, // top-level, matches what the backend reads
+            idToken,
           }),
         },
       );
