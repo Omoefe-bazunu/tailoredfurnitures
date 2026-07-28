@@ -134,8 +134,8 @@ export default function Footer() {
               Contact Address
             </p>
             <p className="font-body font-light text-xs text-white/60 leading-relaxed">
-              30N Gould St Ste N<br />
-              Sheridan, WY 82801
+             35 Payne Street,<br />
+             Qunicy MA.
             </p>
           </div>
         </div>
