@@ -52,40 +52,78 @@ export default function StudioOrders() {
     return () => clearTimeout(timer);
   }, [showSuccessBanner]);
 
+
   useEffect(() => {
-    if (!user) return;
+  if (!user) return;
 
-    const q = query(
-      collection(db, "orders"),
-      where("customerEmail", "==", user.email),
-      orderBy("createdAt", "desc"),
+  const byUid = query(collection(db, "orders"), where("customerUid", "==", user.uid));
+  const byEmail = query(collection(db, "orders"), where("customerEmail", "==", user.email));
+
+  let uidOrders = [];
+  let emailOrders = [];
+
+  const mapDoc = (d) => ({
+    id: d.id,
+    ...d.data(),
+    createdAtRaw: d.data().createdAt,
+    createdAt: d.data().createdAt?.toDate?.()
+      ? d.data().createdAt.toDate().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+      : "N/A",
+  });
+
+  const mergeAndSet = () => {
+    const map = new Map();
+    [...uidOrders, ...emailOrders].forEach((o) => map.set(o.id, o));
+    setOrders(
+      Array.from(map.values()).sort(
+        (a, b) => (b.createdAtRaw?.toMillis?.() || 0) - (a.createdAtRaw?.toMillis?.() || 0),
+      ),
     );
+  };
 
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setOrders(
-          snap.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-            createdAt: d.data().createdAt?.toDate?.()
-              ? d.data().createdAt.toDate().toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })
-              : "N/A",
-          })),
-        );
-      },
-      (error) => {
-        console.error("Orders fetch failed:", error);
-        setOrders([]);
-      },
-    );
+  const unsub1 = onSnapshot(byUid, (snap) => { uidOrders = snap.docs.map(mapDoc); mergeAndSet(); },
+    (error) => console.error("Orders (uid) fetch failed:", error));
+  const unsub2 = onSnapshot(byEmail, (snap) => { emailOrders = snap.docs.map(mapDoc); mergeAndSet(); },
+    (error) => console.error("Orders (email) fetch failed:", error));
 
-    return () => unsub();
-  }, [user]);
+  return () => { unsub1(); unsub2(); };
+}, [user]);
+
+  
+  // useEffect(() => {
+  //   if (!user) return;
+
+  //   const q = query(
+  //     collection(db, "orders"),
+  //     where("customerEmail", "==", user.email),
+  //     orderBy("createdAt", "desc"),
+  //   );
+
+  //   const unsub = onSnapshot(
+  //     q,
+  //     (snap) => {
+  //       setOrders(
+  //         snap.docs.map((d) => ({
+  //           id: d.id,
+  //           ...d.data(),
+  //           createdAt: d.data().createdAt?.toDate?.()
+  //             ? d.data().createdAt.toDate().toLocaleDateString("en-US", {
+  //                 year: "numeric",
+  //                 month: "long",
+  //                 day: "numeric",
+  //               })
+  //             : "N/A",
+  //         })),
+  //       );
+  //     },
+  //     (error) => {
+  //       console.error("Orders fetch failed:", error);
+  //       setOrders([]);
+  //     },
+  //   );
+
+  //   return () => unsub();
+  // }, [user]);
 
   const loading = user && orders === null;
 
