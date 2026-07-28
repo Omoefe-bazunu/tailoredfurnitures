@@ -4,11 +4,13 @@ import React, { useState } from "react";
 import { useCart } from "@/context/CartContext";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CheckoutPage() {
   const { cart, getSubtotal } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
+  const { user } = useAuth();
 
   const [customerInfo, setCustomerInfo] = useState({
     name: "",
@@ -17,6 +19,8 @@ export default function CheckoutPage() {
     city: "",
     country: "",
   });
+
+  const idToken = user ? await user.getIdToken() : null;
 
   const totalInvestment = getSubtotal();
 
@@ -59,6 +63,7 @@ export default function CheckoutPage() {
               address: address.trim(),
               city: city.trim(),
               country: country.trim(),
+              idToken
             },
           }),
         },
