@@ -20,8 +20,6 @@ export default function CheckoutPage() {
     country: "",
   });
 
-  const idToken = user ? await user.getIdToken() : null;
-
   const totalInvestment = getSubtotal();
 
   const handleSubmit = async (e) => {
@@ -29,13 +27,7 @@ export default function CheckoutPage() {
     if (cart.length === 0 || isProcessing) return;
 
     const { name, email, address, city, country } = customerInfo;
-    if (
-      !name.trim() ||
-      !email.trim() ||
-      !address.trim() ||
-      !city.trim() ||
-      !country.trim()
-    ) {
+    if (!name.trim() || !email.trim() || !address.trim() || !city.trim() || !country.trim()) {
       setError("Please fill in all fields.");
       return;
     }
@@ -44,27 +36,25 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      // The backend now looks up real prices by product id and creates
-      // both the order doc and the Stripe session itself. We only send
-      // id + quantity, never price.
+      // Fetch a fresh token right before submitting — tokens expire,
+      // so grabbing it at render time (like before) was unreliable.
+      const idToken = user ? await user.getIdToken() : null;
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/create-checkout-session`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            cart: cart.map((item) => ({
-              id: item.id,
-              quantity: item.quantity,
-            })),
+            cart: cart.map((item) => ({ id: item.id, quantity: item.quantity })),
             customerInfo: {
               name: name.trim(),
               email: email.trim(),
               address: address.trim(),
               city: city.trim(),
               country: country.trim(),
-              idToken
             },
+            idToken, // top-level, matches what the backend reads
           }),
         },
       );
@@ -76,15 +66,13 @@ export default function CheckoutPage() {
       }
 
       window.location.assign(data.url);
-      // Note: cart is intentionally NOT cleared here — clear it on the
-      // /orders?status=success page after confirming payment, so an
-      // abandoned/cancelled checkout doesn't lose the cart.
     } catch (err) {
       console.error("Checkout error:", err);
       setError("Something went wrong starting checkout. Please try again.");
       setIsProcessing(false);
     }
   };
+
 
   if (cart.length === 0) {
     return (
