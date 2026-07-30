@@ -25,9 +25,9 @@ import {
 import StatusBadge from "@/components/orders/StatusBadge";
 
 // Helper to safely call TikTok Pixel
-const trackTikTok = (event: string, data: any) => {
-  if (typeof window !== "undefined" && (window as any).ttq) {
-    (window as any).ttq.track(event, data);
+const trackTikTok = (event, data) => {
+  if (typeof window !== "undefined" && window.ttq) {
+    window.ttq.track(event, data);
   }
 };
 
