@@ -23,9 +23,9 @@ import ArtworkRelated from "@/components/gallery/ArtWorkRelated";
 import Link from "next/link";
 
 // Helper to safely call TikTok Pixel
-const trackTikTok = (event: string, data: any) => {
-  if (typeof window !== "undefined" && (window as any).ttq) {
-    (window as any).ttq.track(event, data);
+const trackTikTok = (event, data) => {
+  if (typeof window !== "undefined" && window.ttq) {
+    window.ttq.track(event, data);
   }
 };
 
