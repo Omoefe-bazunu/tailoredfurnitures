@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -24,17 +24,48 @@ import {
 } from "firebase/firestore";
 import StatusBadge from "@/components/orders/StatusBadge";
 
+// Helper to safely call TikTok Pixel
+const trackTikTok = (event: string, data: any) => {
+  if (typeof window !== "undefined" && (window as any).ttq) {
+    (window as any).ttq.track(event, data);
+  }
+};
+
 export default function StudioOrders() {
   const { user } = useAuth();
-  const { clearCart } = useCart();
+  const { clearCart, cart } = useCart();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [orders, setOrders] = useState(null);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const purchaseTracked = useRef(false); // Prevent double firing
 
-  // Handle Stripe redirect back from checkout
+  // Handle Stripe redirect back from checkout + TikTok Purchase
   useEffect(() => {
     if (searchParams.get("status") !== "success") return;
+    if (purchaseTracked.current) return;
+
+    // Fire Purchase event (using current cart data before clearing)
+    if (cart && cart.length > 0) {
+      const contents = cart.map((item) => ({
+        content_id: item.id,
+        content_type: "product",
+        content_name: item.name,
+      }));
+
+      const value = cart.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      );
+
+      trackTikTok("Purchase", {
+        contents,
+        value,
+        currency: "USD",
+      });
+
+      purchaseTracked.current = true;
+    }
 
     const timer = setTimeout(() => {
       clearCart();
@@ -43,7 +74,7 @@ export default function StudioOrders() {
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [searchParams, clearCart, router]);
+  }, [searchParams, clearCart, router, cart]);
 
   // Separate effect just for auto-hiding the banner
   useEffect(() => {
@@ -52,78 +83,68 @@ export default function StudioOrders() {
     return () => clearTimeout(timer);
   }, [showSuccessBanner]);
 
-
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  const byUid = query(collection(db, "orders"), where("customerUid", "==", user.uid));
-  const byEmail = query(collection(db, "orders"), where("customerEmail", "==", user.email));
-
-  let uidOrders = [];
-  let emailOrders = [];
-
-  const mapDoc = (d) => ({
-    id: d.id,
-    ...d.data(),
-    createdAtRaw: d.data().createdAt,
-    createdAt: d.data().createdAt?.toDate?.()
-      ? d.data().createdAt.toDate().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-      : "N/A",
-  });
-
-  const mergeAndSet = () => {
-    const map = new Map();
-    [...uidOrders, ...emailOrders].forEach((o) => map.set(o.id, o));
-    setOrders(
-      Array.from(map.values()).sort(
-        (a, b) => (b.createdAtRaw?.toMillis?.() || 0) - (a.createdAtRaw?.toMillis?.() || 0),
-      ),
+    const byUid = query(
+      collection(db, "orders"),
+      where("customerUid", "==", user.uid),
     );
-  };
+    const byEmail = query(
+      collection(db, "orders"),
+      where("customerEmail", "==", user.email),
+    );
 
-  const unsub1 = onSnapshot(byUid, (snap) => { uidOrders = snap.docs.map(mapDoc); mergeAndSet(); },
-    (error) => console.error("Orders (uid) fetch failed:", error));
-  const unsub2 = onSnapshot(byEmail, (snap) => { emailOrders = snap.docs.map(mapDoc); mergeAndSet(); },
-    (error) => console.error("Orders (email) fetch failed:", error));
+    let uidOrders = [];
+    let emailOrders = [];
 
-  return () => { unsub1(); unsub2(); };
-}, [user]);
+    const mapDoc = (d) => ({
+      id: d.id,
+      ...d.data(),
+      createdAtRaw: d.data().createdAt,
+      createdAt: d.data().createdAt?.toDate?.()
+        ? d.data().createdAt.toDate().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "N/A",
+    });
 
-  
-  // useEffect(() => {
-  //   if (!user) return;
+    const mergeAndSet = () => {
+      const map = new Map();
+      [...uidOrders, ...emailOrders].forEach((o) => map.set(o.id, o));
+      setOrders(
+        Array.from(map.values()).sort(
+          (a, b) =>
+            (b.createdAtRaw?.toMillis?.() || 0) -
+            (a.createdAtRaw?.toMillis?.() || 0),
+        ),
+      );
+    };
 
-  //   const q = query(
-  //     collection(db, "orders"),
-  //     where("customerEmail", "==", user.email),
-  //     orderBy("createdAt", "desc"),
-  //   );
+    const unsub1 = onSnapshot(
+      byUid,
+      (snap) => {
+        uidOrders = snap.docs.map(mapDoc);
+        mergeAndSet();
+      },
+      (error) => console.error("Orders (uid) fetch failed:", error),
+    );
+    const unsub2 = onSnapshot(
+      byEmail,
+      (snap) => {
+        emailOrders = snap.docs.map(mapDoc);
+        mergeAndSet();
+      },
+      (error) => console.error("Orders (email) fetch failed:", error),
+    );
 
-  //   const unsub = onSnapshot(
-  //     q,
-  //     (snap) => {
-  //       setOrders(
-  //         snap.docs.map((d) => ({
-  //           id: d.id,
-  //           ...d.data(),
-  //           createdAt: d.data().createdAt?.toDate?.()
-  //             ? d.data().createdAt.toDate().toLocaleDateString("en-US", {
-  //                 year: "numeric",
-  //                 month: "long",
-  //                 day: "numeric",
-  //               })
-  //             : "N/A",
-  //         })),
-  //       );
-  //     },
-  //     (error) => {
-  //       console.error("Orders fetch failed:", error);
-  //       setOrders([]);
-  //     },
-  //   );
-
-  //   return () => unsub();
-  // }, [user]);
+    return () => {
+      unsub1();
+      unsub2();
+    };
+  }, [user]);
 
   const loading = user && orders === null;
 
@@ -133,7 +154,8 @@ export default function StudioOrders() {
   );
 
   const totalUnits = (orders || []).reduce(
-    (acc, o) => acc + (o.items || []).reduce((s, i) => s + i.quantity, 0),
+    (acc, o) =>
+      acc + (o.items || []).reduce((s, i) => s + i.quantity, 0),
     0,
   );
 
