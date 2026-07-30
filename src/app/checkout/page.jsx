@@ -1,11 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { auth } from "@/lib/firebase";
+
+// Helper to safely call TikTok Pixel
+const trackTikTok = (event: string, data: any) => {
+  if (typeof window !== "undefined" && (window as any).ttq) {
+    (window as any).ttq.track(event, data);
+  }
+};
 
 export default function CheckoutPage() {
   const { cart, getSubtotal } = useCart();
@@ -23,12 +30,35 @@ export default function CheckoutPage() {
 
   const totalInvestment = getSubtotal();
 
+  // ========== TIKTOK: InitiateCheckout ==========
+  useEffect(() => {
+    if (cart.length === 0) return;
+
+    const contents = cart.map((item) => ({
+      content_id: item.id,
+      content_type: "product",
+      content_name: item.name,
+    }));
+
+    trackTikTok("InitiateCheckout", {
+      contents,
+      value: totalInvestment,
+      currency: "USD",
+    });
+  }, [cart, totalInvestment]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (cart.length === 0 || isProcessing) return;
 
     const { name, email, address, city, country } = customerInfo;
-    if (!name.trim() || !email.trim() || !address.trim() || !city.trim() || !country.trim()) {
+    if (
+      !name.trim() ||
+      !email.trim() ||
+      !address.trim() ||
+      !city.trim() ||
+      !country.trim()
+    ) {
       setError("Please fill in all fields.");
       return;
     }
@@ -37,7 +67,9 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+      const idToken = auth.currentUser
+        ? await auth.currentUser.getIdToken()
+        : null;
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/create-checkout-session`,
@@ -45,7 +77,10 @@ export default function CheckoutPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            cart: cart.map((item) => ({ id: item.id, quantity: item.quantity })),
+            cart: cart.map((item) => ({
+              id: item.id,
+              quantity: item.quantity,
+            })),
             customerInfo: {
               name: name.trim(),
               email: email.trim(),
@@ -71,7 +106,6 @@ export default function CheckoutPage() {
       setIsProcessing(false);
     }
   };
-
 
   if (cart.length === 0) {
     return (
