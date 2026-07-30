@@ -22,6 +22,13 @@ import ArtworkReviews from "@/components/gallery/ArtWorkReviews";
 import ArtworkRelated from "@/components/gallery/ArtWorkRelated";
 import Link from "next/link";
 
+// Helper to safely call TikTok Pixel
+const trackTikTok = (event: string, data: any) => {
+  if (typeof window !== "undefined" && (window as any).ttq) {
+    (window as any).ttq.track(event, data);
+  }
+};
+
 export default function ArtworkDetail() {
   const params = useParams();
   const { addToCart } = useCart();
@@ -46,6 +53,23 @@ export default function ArtworkDetail() {
     return () => unsubscribe();
   }, [params?.slug]);
 
+  // ========== TIKTOK: ViewContent ==========
+  useEffect(() => {
+    if (!artwork) return;
+
+    trackTikTok("ViewContent", {
+      contents: [
+        {
+          content_id: artwork.id,
+          content_type: "product",
+          content_name: artwork.name,
+        },
+      ],
+      value: Number(artwork.price),
+      currency: "USD",
+    });
+  }, [artwork]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center font-body text-xs tracking-widest uppercase text-muted animate-pulse">
@@ -67,6 +91,24 @@ export default function ArtworkDetail() {
       </div>
     );
   }
+
+  // ========== TIKTOK: AddToCart ==========
+  const handleAddToCart = () => {
+    addToCart(artwork, quantity);
+    setAddedToCart(true);
+
+    trackTikTok("AddToCart", {
+      contents: [
+        {
+          content_id: artwork.id,
+          content_type: "product",
+          content_name: artwork.name,
+        },
+      ],
+      value: Number(artwork.price) * quantity,
+      currency: "USD",
+    });
+  };
 
   return (
     <main className="min-h-screen bg-background text-foreground py-12 px-6 md:px-12 lg:px-24 transition-colors duration-500 gallery-fade relative">
@@ -210,11 +252,9 @@ export default function ArtworkDetail() {
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
+
                 <button
-                  onClick={() => {
-                    addToCart(artwork, quantity);
-                    setAddedToCart(true);
-                  }}
+                  onClick={handleAddToCart}
                   className="btn-luxury flex-grow h-14"
                 >
                   <ShoppingBag className="w-4 h-4 mr-2 stroke-[1.5]" /> Add to
